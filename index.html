@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jobs by Sector — Gateway Cities</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #fff; color: #1a1a1a; padding: 24px; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #666; margin-bottom: 20px; }
+  #chart { margin-bottom: 40px; }
+  #chart2 { margin-bottom: 16px; }
+  h2 { font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 4px; }
+
+  /* Tilemap styles */
+  .map-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid #ddd; }
+  .map-wrap { position: relative; width: 100%; max-width: 1100px; background: #fff; border: 1px solid #e0e0e0; border-radius: 2px; overflow: hidden; margin-bottom: 16px; }
+  #tilemap { width: 100%; height: 620px; }
+  .map-controls { position: absolute; top: 16px; right: 16px; z-index: 10; display: flex; flex-direction: column; }
+  .map-controls button { width: 36px; height: 36px; background: #fff; border: 1px solid #d0d0d0; cursor: pointer; font-size: 18px; font-weight: 600; color: #333; display: flex; align-items: center; justify-content: center; transition: background 0.15s; line-height: 1; }
+  .map-controls button:first-child { border-radius: 3px 3px 0 0; border-bottom: none; }
+  .map-controls button:nth-child(2) { border-radius: 0 0 3px 3px; }
+  .map-controls button:hover { background: #f0f0f0; }
+  .toggle-wrap { margin-top: 8px; background: #fff; border: 1px solid #d0d0d0; border-radius: 3px; padding: 6px 8px; display: flex; align-items: center; gap: 7px; width: max-content; }
+  .toggle-label { font-size: 11px; font-weight: 600; color: #555; letter-spacing: 0.02em; user-select: none; }
+  .toggle-track { position: relative; width: 32px; height: 18px; background: #ccc; border-radius: 9px; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+  .toggle-track.active { background: #e2773e; }
+  .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: left 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+  .toggle-track.active .toggle-thumb { left: 16px; }
+  .map-legend { position: absolute; bottom: 16px; left: 16px; z-index: 10; background: #fff; border: 1px solid #d0d0d0; border-radius: 3px; padding: 10px 14px; }
+  .map-legend-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 6px; }
+  .map-legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-size: 12px; color: #444; }
+  .map-legend-item:last-child { margin-bottom: 0; }
+  .map-legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+  .map-source { font-size: 12px; color: #999; margin-bottom: 32px; }
+  @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.5); opacity: 0; } }
+  .city-hall-pulse { position: absolute; width: 16px; height: 16px; border-radius: 50%; background: rgba(5,150,105,0.3); animation: pulse-ring 2s ease-out infinite; pointer-events: none; }
+  .year-tabs { position: absolute; top: 16px; left: 16px; z-index: 10; display: flex; gap: 0; }
+  .year-tab { padding: 6px 14px; font-size: 12px; font-weight: 600; color: #555; background: #fff; border: 1px solid #d0d0d0; cursor: pointer; transition: all 0.15s; letter-spacing: 0.02em; }
+  .year-tab:first-child { border-radius: 3px 0 0 3px; }
+  .year-tab:last-child { border-radius: 0 3px 3px 0; }
+  .year-tab:not(:first-child) { border-left: none; }
+  .year-tab:hover { background: #f0f0f0; }
+  .year-tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .year-tab.active + .year-tab { border-left: 1px solid #1a1a1a; }
+  .map-job-total { position: absolute; top: 50px; left: 16px; z-index: 10; background: rgba(255,255,255,0.92); border: 1px solid #d0d0d0; border-radius: 3px; padding: 8px 12px; font-size: 11px; color: #888; }
+  .map-job-total .job-number { font-size: 22px; font-weight: 700; color: #1a1a1a; display: block; }
+  .maplibregl-ctrl-attrib { display: none !important; }
+  .maplibregl-ctrl { display: none !important; }
+  .maplibregl-popup-content { background: #fff !important; color: #1a1a1a !important; border: 1px solid #e0e0e0 !important; border-radius: 3px !important; padding: 10px 14px !important; font-family: inherit !important; font-size: 13px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important; max-height: 60vh !important; overflow-y: auto !important; }
+  .maplibregl-popup-tip { border-top-color: #fff !important; }
+  .popup-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .popup-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 2px; }
+  .popup-label { color: #888; }
+  .popup-value { font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 2px 20px; font-size: 12px; color: #444; margin-bottom: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; min-width: 160px; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+  .tooltip {
+    position: absolute; pointer-events: none; background: rgba(0,0,0,0.85); color: #fff;
+    padding: 8px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100;
+  }
+  .tooltip .tt-city { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+  .tooltip .tt-sector { color: rgba(255,255,255,0.7); }
+  .tooltip .tt-value { font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Jobs by Sector across Gateway City Districts</h1>
+<div class="subtitle">LODES 2023 employment in downtown cores and neighborhood commercial districts — 25 Massachusetts Gateway Cities</div>
+<p style="max-width:960px; font-size:14px; line-height:1.6; color:#333; margin-bottom:20px;">These charts draw on 2023 LODES workplace employment data to show the sectoral composition of jobs located within algorithmically-delineated downtown cores and neighborhood commercial districts across Massachusetts's 24 Gateway Cities, excluding Boston. The stacked bar chart reveals both the scale and structure of each city's district economy, while the normalized view strips out size differences so you can compare economic character directly &mdash; a city where healthcare dominates at 40% looks the same at the bar level whether it has 2,000 or 20,000 jobs. Look for cities where a single sector crowds out the rest, which often signals fragility or a downtown anchored by one large institutional employer rather than a diverse commercial base, and contrast those against cities with broader mixes of retail, professional services, and food and accommodation, which tend to indicate more pedestrian-oriented, market-driven activity. For workforce development, business attraction, and downtown revitalization strategy, the sector mix reveals whether a city's commercial core is genuinely competitive or dependent on public-sector and institutional employment that may not generate the foot traffic and spin-off activity needed to support small business ecosystems.</p>
+<div id="legend" class="legend"></div>
+<div id="chart"></div>
+<h2>Sector Mix by City</h2>
+<div class="subtitle">Percentage composition — same data normalized to 100% per city</div>
+<div id="chart2"></div>
+
+<hr style="margin:48px 0 32px; border:none; border-top:1px solid #ddd;">
+
+<h1>Jobs by Sector across Gateway City Districts — 2019 (Pre-COVID)</h1>
+<div class="subtitle">LODES 2019 employment in downtown cores and neighborhood commercial districts — 24 Massachusetts Gateway Cities</div>
+<div id="chart3"></div>
+<h2>Sector Mix by City — 2019</h2>
+<div class="subtitle">Percentage composition — same data normalized to 100% per city</div>
+<div id="chart4"></div>
+<script>
+const sectorColors = new Map([
+  ["Professional/Technical", "#2A5784"],
+  ["Finance/Insurance", "#43719F"],
+  ["Healthcare", "#5B8DB8"],
+  ["Education", "#7AAAD0"],
+  ["Food/Accommodation", "#9BC7E4"],
+  ["Retail Trade", "#BADDF1"],
+  ["Public Admin", "#E2773E"],
+  ["Admin Support", "#EE7423"],
+  ["Other Services", "#F4A261"],
+  ["Arts/Entertainment", "#F7C480"],
+  ["Information", "#FAE0A6"],
+  ["Real Estate", "#2A8636"],
+  ["Management", "#24693D"],
+  ["Construction", "#7F7F7F"],
+  ["Transport/Warehouse", "#A0A0A0"],
+  ["Manufacturing", "#C0C0C0"],
+  ["Wholesale Trade", "#D9D9D9"],
+  ["Utilities", "#B07AA1"],
+  ["Mining", "#D4A6C8"],
+  ["Agriculture", "#E8D5E0"],
+]);
+
+const width = 1100;
+const height = 560;
+const margin = { top: 20, right: 20, bottom: 80, left: 60 };
+
+const sectors = [...sectorColors.keys()];
+const color = d3.scaleOrdinal().domain(sectors).range(sectors.map(s => sectorColors.get(s)));
+const tooltip = d3.select("body").append("div").attr("class", "tooltip").style("display", "none");
+
+function renderChartPair(dataFile, absId, pctId) {
+  d3.json(dataFile).then(raw => {
+    const byCityMap = d3.group(raw, d => d.city);
+    const cities = [...byCityMap.keys()];
+    const cityTotals = cities.map(c => ({ city: c, total: d3.sum(byCityMap.get(c), d => d.value) }));
+    cityTotals.sort((a, b) => b.total - a.total);
+    const sortedCities = cityTotals.map(d => d.city);
+
+    const tableData = sortedCities.map(city => {
+      const row = { city };
+      const cityData = byCityMap.get(city);
+      for (const s of sectors) {
+        const match = cityData.find(d => d.sector === s);
+        row[s] = match ? match.value : 0;
+      }
+      return row;
+    });
+
+    const series = d3.stack().keys(sectors).order(d3.stackOrderReverse)(tableData);
+
+    const x = d3.scaleBand().domain(sortedCities).range([margin.left, width - margin.right]).padding(0.08);
+    const y = d3.scaleLinear().domain([0, d3.max(series, s => d3.max(s, d => d[1]))]).nice().range([height - margin.bottom, margin.top]);
+
+    // Absolute chart
+    const svg = d3.select("#" + absId).append("svg").attr("viewBox", [0, 0, width, height]).attr("width", width).attr("height", height);
+
+    svg.append("g").selectAll("g").data(series).join("g").attr("fill", d => color(d.key))
+      .selectAll("rect").data(d => d.map(v => ({ ...v, key: d.key }))).join("rect")
+      .attr("x", d => x(d.data.city)).attr("y", d => y(d[1]))
+      .attr("height", d => y(d[0]) - y(d[1])).attr("width", x.bandwidth())
+      .on("mouseover", function() { d3.select(this).attr("opacity", 0.8); tooltip.style("display", "block"); })
+      .on("mousemove", function(event, d) {
+        tooltip.style("left", (event.pageX + 14) + "px").style("top", (event.pageY - 14) + "px")
+          .html(`<div class="tt-city">${d.data.city}</div><div class="tt-sector">${d.key}</div><div class="tt-value">${d3.format(",")(d.data[d.key])} jobs</div>`);
+      })
+      .on("mouseout", function() { d3.select(this).attr("opacity", 1); tooltip.style("display", "none"); });
+
+    svg.append("g").attr("transform", `translate(0,${height - margin.bottom})`).call(d3.axisBottom(x).tickSizeOuter(0))
+      .selectAll("text").attr("transform", "rotate(-45)").style("text-anchor", "end").attr("dx", "-0.5em").attr("dy", "0.25em").style("font-size", "11px");
+
+    svg.append("g").attr("transform", `translate(${margin.left},0)`)
+      .call(d3.axisLeft(y).ticks(8).tickFormat(d => d >= 1000 ? d3.format(",.0f")(d / 1000) + "k" : d))
+      .call(g => g.select(".domain").remove())
+      .call(g => g.selectAll(".tick line").clone().attr("x2", width - margin.left - margin.right).attr("stroke-opacity", 0.08))
+      .call(g => g.append("text").attr("x", -margin.left + 4).attr("y", margin.top - 8).attr("fill", "currentColor").attr("text-anchor", "start").attr("font-size", "12px").text("↑ Jobs"));
+
+    // Percentage chart
+    const pctData = tableData.map(row => {
+      const total = sectors.reduce((sum, s) => sum + row[s], 0);
+      const pctRow = { city: row.city };
+      for (const s of sectors) { pctRow[s] = total > 0 ? row[s] / total : 0; }
+      return pctRow;
+    });
+
+    const series2 = d3.stack().keys(sectors).order(d3.stackOrderReverse)(pctData);
+    const y2 = d3.scaleLinear().domain([0, 1]).range([height - margin.bottom, margin.top]);
+
+    const svg2 = d3.select("#" + pctId).append("svg").attr("viewBox", [0, 0, width, height]).attr("width", width).attr("height", height);
+
+    svg2.append("g").selectAll("g").data(series2).join("g").attr("fill", d => color(d.key))
+      .selectAll("rect").data(d => d.map(v => ({ ...v, key: d.key }))).join("rect")
+      .attr("x", d => x(d.data.city)).attr("y", d => y2(d[1]))
+      .attr("height", d => y2(d[0]) - y2(d[1])).attr("width", x.bandwidth())
+      .on("mouseover", function() { d3.select(this).attr("opacity", 0.8); tooltip.style("display", "block"); })
+      .on("mousemove", function(event, d) {
+        const pct = (d.data[d.key] * 100).toFixed(1);
+        const origRow = tableData.find(r => r.city === d.data.city);
+        const jobs = origRow ? origRow[d.key] : 0;
+        tooltip.style("left", (event.pageX + 14) + "px").style("top", (event.pageY - 14) + "px")
+          .html(`<div class="tt-city">${d.data.city}</div><div class="tt-sector">${d.key}</div><div class="tt-value">${pct}% (${d3.format(",")(jobs)} jobs)</div>`);
+      })
+      .on("mouseout", function() { d3.select(this).attr("opacity", 1); tooltip.style("display", "none"); });
+
+    svg2.append("g").attr("transform", `translate(0,${height - margin.bottom})`).call(d3.axisBottom(x).tickSizeOuter(0))
+      .selectAll("text").attr("transform", "rotate(-45)").style("text-anchor", "end").attr("dx", "-0.5em").attr("dy", "0.25em").style("font-size", "11px");
+
+    svg2.append("g").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(y2).ticks(0).tickSize(0)).call(g => g.select(".domain").remove());
+  });
+}
+
+// Legend
+const legendDiv = d3.select("#legend");
+sectors.forEach(s => {
+  const item = legendDiv.append("div").attr("class", "legend-item");
+  item.append("div").attr("class", "legend-swatch").style("background", sectorColors.get(s));
+  item.append("span").text(s);
+});
+
+// Render both years
+renderChartPair("chart_data.json", "chart", "chart2");
+renderChartPair("chart_data_2019.json", "chart3", "chart4");
+</script>
+
+<div class="map-section">
+  <h1>District Map — Massachusetts Gateway Cities</h1>
+  <div class="subtitle" style="margin-bottom:16px;">Downtown cores, neighborhood commercial districts, and immigrant-serving census tracts (D_imm &ge; 30%)</div>
+  <div class="map-wrap">
+    <div id="tilemap"></div>
+    <div class="year-tabs">
+      <div class="year-tab" data-year="2012">'12</div>
+      <div class="year-tab" data-year="2019">'19</div>
+      <div class="year-tab active" data-year="2023">'23</div>
+    </div>
+    <div class="map-job-total">
+      District Jobs<span class="job-number" id="job-total">—</span>
+    </div>
+    <div class="map-controls">
+      <button id="zoom-in" title="Zoom in">+</button>
+      <button id="zoom-out" title="Zoom out">&minus;</button>
+      <div class="toggle-wrap">
+        <span class="toggle-label">Satellite</span>
+        <div class="toggle-track" id="sat-toggle"><div class="toggle-thumb"></div></div>
+      </div>
+    </div>
+    <div class="map-legend">
+      <div class="map-legend-title">District Type</div>
+      <div class="map-legend-item"><div class="map-legend-swatch" style="background:#f4b4ba; border:2px solid #d62839;"></div><span>Downtown Core</span></div>
+      <div class="map-legend-item"><div class="map-legend-swatch" style="background:#fde0b1; border:2px solid #e8913a;"></div><span>Neighborhood Commercial</span></div>
+      <div class="map-legend-item"><div class="map-legend-swatch" style="background:#b2dfdb; border:1.5px solid #2a9d8f;"></div><span>Immigrant-Serving Tract</span></div>
+      <div class="map-legend-item"><div class="map-legend-swatch" style="background:#059669; border-radius:50%; border:1.5px solid #fff;"></div><span>City Hall</span></div>
+    </div>
+  </div>
+  <div class="map-source">Source: LEHD LODES 2023, ACS 2022 5-Year Estimates, TIGER/Line 2020 &middot; District boundaries via DJMI/DBSCAN algorithm</div>
+</div>
+
+<script>
+const BOTH_BASEMAPS = {
+  version: 8,
+  sources: {
+    'carto': { type: 'raster', tiles: ['https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png'], tileSize: 256 },
+    'esri': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 }
+  },
+  layers: [
+    { id: 'carto', type: 'raster', source: 'carto' },
+    { id: 'esri', type: 'raster', source: 'esri', layout: { visibility: 'none' } }
+  ]
+};
+
+let isSatellite = false;
+const tmap = new maplibregl.Map({ container: 'tilemap', style: BOTH_BASEMAPS, center: [-71.8, 42.15], zoom: 7.8, maxZoom: 18, minZoom: 6, attributionControl: false });
+
+document.getElementById('zoom-in').addEventListener('click', () => tmap.zoomIn());
+document.getElementById('zoom-out').addEventListener('click', () => tmap.zoomOut());
+
+const toggle = document.getElementById('sat-toggle');
+toggle.addEventListener('click', () => {
+  isSatellite = !isSatellite;
+  toggle.classList.toggle('active', isSatellite);
+  tmap.setLayoutProperty('carto', 'visibility', isSatellite ? 'none' : 'visible');
+  tmap.setLayoutProperty('esri', 'visibility', isSatellite ? 'visible' : 'none');
+});
+
+// Load all 3 years of job data
+const jobsByYear = {};
+let currentYear = 2023;
+let blocksGeoJson = null;
+
+async function addMapLayers() {
+  const [bRes, tRes, j12, j19, j23] = await Promise.all([
+    fetch('gw boundaries & totals/gateway_blocks_filtered.geojson'),
+    fetch('gw boundaries & totals/immigrant_serving_tracts.geojson'),
+    fetch('block_jobs_2012.json'),
+    fetch('block_jobs_2019.json'),
+    fetch('block_jobs_2023.json'),
+  ]);
+  const bData = await bRes.json();
+  const tData = await tRes.json();
+  jobsByYear[2012] = await j12.json();
+  jobsByYear[2019] = await j19.json();
+  jobsByYear[2023] = await j23.json();
+
+  bData.features = bData.features.filter(f => f.properties.district_type === 'downtown' || f.properties.district_type === 'secondary_employment');
+
+  // Stamp current year jobs onto each feature
+  bData.features.forEach(f => {
+    const gid = f.properties.GEOID;
+    f.properties.jobs_2012 = jobsByYear[2012][gid] || 0;
+    f.properties.jobs_2019 = jobsByYear[2019][gid] || 0;
+    f.properties.jobs_2023 = jobsByYear[2023][gid] || 0;
+    f.properties.jobs_current = f.properties.jobs_2023;
+  });
+
+  blocksGeoJson = bData;
+
+  if (!tmap.getSource('tracts')) tmap.addSource('tracts', { type: 'geojson', data: tData });
+  if (!tmap.getSource('blocks')) tmap.addSource('blocks', { type: 'geojson', data: bData });
+
+  tmap.addLayer({ id: 'tracts-fill', type: 'fill', source: 'tracts', paint: { 'fill-color': '#b2dfdb', 'fill-opacity': 0.25 } });
+  tmap.addLayer({ id: 'tracts-line', type: 'line', source: 'tracts', paint: { 'line-color': '#2a9d8f', 'line-width': 1.5, 'line-opacity': 0.5 } });
+  tmap.addLayer({ id: 'secondary-fill', type: 'fill', source: 'blocks', filter: ['==', ['get', 'district_type'], 'secondary_employment'], paint: { 'fill-color': '#fde0b1', 'fill-opacity': 0.45 } });
+  tmap.addLayer({ id: 'secondary-line', type: 'line', source: 'blocks', filter: ['==', ['get', 'district_type'], 'secondary_employment'], paint: { 'line-color': '#e8913a', 'line-width': 1.8, 'line-opacity': 0.8 } });
+  tmap.addLayer({ id: 'downtown-fill', type: 'fill', source: 'blocks', filter: ['==', ['get', 'district_type'], 'downtown'], paint: { 'fill-color': '#f4b4ba', 'fill-opacity': 0.45 } });
+  tmap.addLayer({ id: 'downtown-line', type: 'line', source: 'blocks', filter: ['==', ['get', 'district_type'], 'downtown'], paint: { 'line-color': '#d62839', 'line-width': 1.8, 'line-opacity': 0.9 } });
+  tmap.addLayer({ id: 'blocks-outline', type: 'line', source: 'blocks', paint: { 'line-color': 'rgba(0,0,0,0.1)', 'line-width': 0.3 }, minzoom: 13 });
+
+  // City Hall markers — Transiting (5) style: #059669 pulsing green
+  const cityHalls = {
+    type: 'FeatureCollection',
+    features: [
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.2856, 41.9445] }, properties: { name: 'Attleboro' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-70.3002, 41.7003] }, properties: { name: 'Barnstable' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0598, 42.3601] }, properties: { name: 'Boston' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0184, 42.0834] }, properties: { name: 'Brockton' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0328, 42.3918] }, properties: { name: 'Chelsea' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-72.6078, 42.1487] }, properties: { name: 'Chicopee' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0536, 42.4084] }, properties: { name: 'Everett' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.1550, 41.7015] }, properties: { name: 'Fall River' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.8023, 42.5834] }, properties: { name: 'Fitchburg' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0773, 42.7762] }, properties: { name: 'Haverhill' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-72.6162, 42.2043] }, properties: { name: 'Holyoke' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.1631, 42.7070] }, properties: { name: 'Lawrence' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.7598, 42.5251] }, properties: { name: 'Leominster' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.3162, 42.6334] }, properties: { name: 'Lowell' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-70.9495, 42.4668] }, properties: { name: 'Lynn' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0662, 42.4251] }, properties: { name: 'Malden' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.1909, 42.7262] }, properties: { name: 'Methuen' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-70.9342, 41.6362] }, properties: { name: 'New Bedford' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-70.9286, 42.5278] }, properties: { name: 'Peabody' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-73.2454, 42.4501] }, properties: { name: 'Pittsfield' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0023, 42.2529] }, properties: { name: 'Quincy' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0120, 42.4084] }, properties: { name: 'Revere' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-70.8967, 42.5195] }, properties: { name: 'Salem' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-72.5898, 42.1015] }, properties: { name: 'Springfield' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0898, 41.9001] }, properties: { name: 'Taunton' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-72.7490, 42.1251] }, properties: { name: 'Westfield' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.8023, 42.2626] }, properties: { name: 'Worcester' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-71.0638, 42.3587] }, properties: { name: 'State House' } },
+    ]
+  };
+
+  tmap.addSource('city-halls', { type: 'geojson', data: cityHalls });
+
+  // Outer glow ring
+  tmap.addLayer({ id: 'city-halls-glow', type: 'circle', source: 'city-halls',
+    paint: { 'circle-radius': 12, 'circle-color': '#059669', 'circle-opacity': 0.15, 'circle-blur': 0.8 }
+  });
+  // Inner solid dot
+  tmap.addLayer({ id: 'city-halls-dot', type: 'circle', source: 'city-halls',
+    paint: { 'circle-radius': 5, 'circle-color': '#059669', 'circle-opacity': 0.9, 'circle-stroke-width': 1.5, 'circle-stroke-color': '#fff' }
+  });
+  // City name labels
+  tmap.addLayer({ id: 'city-halls-label', type: 'symbol', source: 'city-halls',
+    layout: {
+      'text-field': ['get', 'name'], 'text-size': 11, 'text-font': ['Open Sans Bold'],
+      'text-offset': [0, 1.4], 'text-anchor': 'top',
+      'text-allow-overlap': false, 'text-optional': true,
+    },
+    paint: { 'text-color': '#059669', 'text-halo-color': '#fff', 'text-halo-width': 1.5 }
+  });
+
+  updateJobTotal(2023);
+
+  const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, maxWidth: '320px' });
+  ['downtown-fill', 'secondary-fill'].forEach(layer => {
+    tmap.on('mouseenter', layer, () => tmap.getCanvas().style.cursor = 'pointer');
+    tmap.on('mouseleave', layer, () => { tmap.getCanvas().style.cursor = ''; popup.remove(); });
+    tmap.on('mousemove', layer, e => {
+      const p = e.features[0].properties;
+      const type = p.district_type === 'downtown' ? 'Downtown Core' : 'Neighborhood Commercial';
+      const gid = p.GEOID;
+      const jobs = jobsByYear[currentYear][gid] || 0;
+      popup.setLngLat(e.lngLat).setHTML(`
+        <div class="popup-title">${p.city_name} — ${type}</div>
+        <div class="popup-row"><span class="popup-label">Block</span><span class="popup-value">${gid}</span></div>
+        <div class="popup-row"><span class="popup-label">Jobs (${currentYear})</span><span class="popup-value">${jobs.toLocaleString()}</span></div>
+        <div class="popup-row"><span class="popup-label">Composite</span><span class="popup-value">${(Number(p.composite_score)||0).toFixed(3)}</span></div>
+        <div class="popup-row"><span class="popup-label">DJMI</span><span class="popup-value">${(Number(p.djmi)||0).toFixed(3)}</span></div>
+        <div class="popup-row"><span class="popup-label">Job Density</span><span class="popup-value">${(Number(p.job_density)||0).toFixed(1)} /acre</span></div>
+      `).addTo(tmap);
+    });
+  });
+  tmap.on('mouseenter', 'city-halls-dot', () => tmap.getCanvas().style.cursor = 'pointer');
+  tmap.on('mouseleave', 'city-halls-dot', () => { tmap.getCanvas().style.cursor = ''; popup.remove(); });
+  tmap.on('mousemove', 'city-halls-dot', e => {
+    const p = e.features[0].properties;
+    popup.setLngLat(e.lngLat).setHTML(`
+      <div class="popup-title" style="color:#059669;">${p.name}</div>
+      <div style="font-size:11px; color:#888;">${p.name === 'State House' ? 'Massachusetts State House' : 'City Hall'}</div>
+    `).addTo(tmap);
+  });
+  tmap.on('mouseenter', 'tracts-fill', () => tmap.getCanvas().style.cursor = 'pointer');
+  tmap.on('mouseleave', 'tracts-fill', () => { tmap.getCanvas().style.cursor = ''; popup.remove(); });
+  tmap.on('mousemove', 'tracts-fill', e => {
+    if (tmap.queryRenderedFeatures(e.point, { layers: ['downtown-fill', 'secondary-fill'] }).length > 0) return;
+    const p = e.features[0].properties;
+    popup.setLngLat(e.lngLat).setHTML(`
+      <div class="popup-title">Immigrant-Serving Tract</div>
+      <div class="popup-row"><span class="popup-label">Tract</span><span class="popup-value">${p.tract_geoid}</span></div>
+      <div class="popup-row"><span class="popup-label">D_imm</span><span class="popup-value" style="color:#2a9d8f;">${Number(p.tract_d_imm).toFixed(1)}%</span></div>
+      <div class="popup-row"><span class="popup-label">Population</span><span class="popup-value">${Number(p.tract_pop).toLocaleString()}</span></div>
+      <div class="popup-row"><span class="popup-label">Foreign-Born</span><span class="popup-value">${Number(p.tract_fb).toLocaleString()}</span></div>
+    `).addTo(tmap);
+  });
+}
+tmap.on('load', addMapLayers);
+
+function updateJobTotal(year) {
+  const jobs = jobsByYear[year];
+  if (!jobs) return;
+  const total = Object.values(jobs).reduce((s, v) => s + v, 0);
+  document.getElementById('job-total').textContent = total.toLocaleString();
+}
+
+// Year tab switching
+document.querySelectorAll('.year-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const year = parseInt(tab.dataset.year);
+    currentYear = year;
+    document.querySelectorAll('.year-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    updateJobTotal(year);
+
+    // Update the GeoJSON source with new year's jobs
+    if (blocksGeoJson) {
+      blocksGeoJson.features.forEach(f => {
+        f.properties.jobs_current = jobsByYear[year][f.properties.GEOID] || 0;
+      });
+      tmap.getSource('blocks').setData(blocksGeoJson);
+    }
+  });
+});
+</script>
+</body>
+</html>
