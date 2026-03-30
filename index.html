@@ -218,13 +218,13 @@ renderChartPair("chart_data_2019.json", "chart3", "chart4");
   <div class="subtitle" style="margin-bottom:16px;">Downtown cores, neighborhood commercial districts, and immigrant-serving census tracts (D_imm &ge; 30%)</div>
   <div class="map-wrap">
     <div id="tilemap"></div>
-    <div class="year-tabs">
+    <div class="map-job-total" style="top:16px; left:16px;">
+      District Jobs<span class="job-number" id="job-total">—</span>
+    </div>
+    <div class="year-tabs" style="position:absolute; bottom:16px; left:50%; transform:translateX(-50%); top:auto;">
       <div class="year-tab" data-year="2012">'12</div>
       <div class="year-tab" data-year="2019">'19</div>
       <div class="year-tab active" data-year="2023">'23</div>
-    </div>
-    <div class="map-job-total">
-      District Jobs<span class="job-number" id="job-total">—</span>
     </div>
     <div class="map-controls">
       <button id="zoom-in" title="Zoom in">+</button>
@@ -243,6 +243,38 @@ renderChartPair("chart_data_2019.json", "chart3", "chart4");
     </div>
   </div>
   <div class="map-source">Source: LEHD LODES 2023, ACS 2022 5-Year Estimates, TIGER/Line 2020 &middot; District boundaries via DJMI/DBSCAN algorithm</div>
+</div>
+
+<div class="map-section">
+  <h1>Massachusetts Survey Map</h1>
+  <div class="subtitle" style="margin-bottom:16px;">Foreign-born population change rendered as vertical spikes across Massachusetts census tracts — D3.js transverse Mercator projection</div>
+  <div style="width:100%; max-width:1100px; border:1px solid #e0e0e0; border-radius:2px; overflow:hidden; margin-bottom:16px;">
+    <iframe src="ma-spikes.html" style="width:100%; height:650px; border:none; display:block;"></iframe>
+  </div>
+</div>
+
+<div class="map-section">
+  <h1>Immigrant Influx — Major Cities</h1>
+  <div class="subtitle" style="margin-bottom:16px;">Foreign-born share vs. industry employment across 38 Massachusetts cities with population &ge; 40,000, from 2015 to 2023</div>
+  <div style="width:100%; max-width:1100px; border:1px solid #e0e0e0; border-radius:2px; overflow:hidden; margin-bottom:16px;">
+    <iframe src="inequality_large.html" style="width:100%; height:650px; border:none; display:block;"></iframe>
+  </div>
+</div>
+
+<div class="map-section">
+  <h1>Immigrant Influx — Towns</h1>
+  <div class="subtitle" style="margin-bottom:16px;">Foreign-born share vs. industry employment across 206 Massachusetts towns with population 5,000&ndash;40,000</div>
+  <div style="width:100%; max-width:1100px; border:1px solid #e0e0e0; border-radius:2px; overflow:hidden; margin-bottom:16px;">
+    <iframe src="inequality_small.html" style="width:100%; height:650px; border:none; display:block;"></iframe>
+  </div>
+</div>
+
+<div class="map-section">
+  <h1>Downtown Core &amp; Neighborhood Commercial</h1>
+  <div class="subtitle" style="margin-bottom:16px;">DBSCAN-delineated employment districts across Massachusetts — downtown cores and secondary neighborhood commercial clusters mapped at the block level</div>
+  <div style="width:100%; max-width:1100px; border:1px solid #e0e0e0; border-radius:2px; overflow:hidden; margin-bottom:16px;">
+    <iframe src="https://longwoodresearch.com/embed/maps" style="width:100%; height:650px; border:none; display:block;"></iframe>
+  </div>
 </div>
 
 <script>

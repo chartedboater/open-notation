@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Libre Franklin', system-ui, sans-serif;
+    background: #fafafa; color: #222;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100vh; overflow: hidden;
+    padding: 8px;
+  }
+  #chart { display: block; width: 100%; height: calc(100vh - 40px); }
+  .axis text { font-family: 'Libre Franklin', sans-serif; font-size: 11px; fill: #888; }
+  .axis line, .axis path { stroke: #e0e0e0; }
+  .grid line { stroke: #f0f0f0; stroke-dasharray: 2,3; }
+  .grid path { display: none; }
+  .arrow { fill: none; stroke-linecap: round; }
+  .arrow-head { stroke: none; }
+  .city-label { font-family: 'Libre Franklin', sans-serif; font-weight: 600; font-size: 11px; pointer-events: none; }
+  .axis-label { font-family: 'Libre Franklin', sans-serif; font-weight: 300; font-size: 12px; fill: #999; letter-spacing: 0.05em; }
+  #tooltip {
+    position: fixed; pointer-events: none; background: white;
+    border: 1px solid #ddd; padding: 10px 14px;
+    font-size: 0.78rem; line-height: 1.5;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    display: none; z-index: 100; max-width: 280px; border-radius: 2px;
+  }
+  .legend-wrap {
+    display: flex; gap: 16px; margin-bottom: 4px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.65rem; color: #888; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<div class="legend-wrap">
+  <div class="legend-item"><div class="legend-dot" style="background:#00bebe;"></div> Growing fb% &amp; jobs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e08020;"></div> Growing fb%, declining jobs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6;"></div> Declining fb%, growing jobs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#aaa;"></div> Declining both</div>
+  <div class="legend-item"><svg width="8" height="8"><circle cx="4" cy="4" r="3" fill="none" stroke="#333" stroke-width="1"/></svg> 2015</div>
+  <div class="legend-item"><svg width="10" height="8"><polygon points="5,0 10,8 0,8" fill="#333"/></svg> 2023</div>
+</div>
+<svg id="chart"></svg>
+<div id="tooltip"></div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(async function() {
+  const data = await fetch("https://cdn.intraparallel.com/ma_inequality_large.json").then(r => r.json());
+
+  const margin = { top: 10, right: 50, bottom: 50, left: 60 };
+  const width = 960;
+  const height = 700;
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const svg = d3.select("#chart")
+    .attr("viewBox", [0, 0, width, height]);
+
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+  data.forEach(d => {
+    d.fbPctStart = d.fbPct15; d.fbPctEnd = d.fbPct23;
+    d.jobsPcStart = d.pop15 > 0 ? (d.jobs15 / d.pop15) * 1000 : 0;
+    d.jobsPcEnd = d.pop23 > 0 ? (d.jobs22 / d.pop23) * 1000 : 0;
+  });
+  const plotData = data.filter(d => d.jobsPcStart > 0 || d.jobsPcEnd > 0);
+
+  const x = d3.scaleLinear().domain([0, 50]).range([0, innerW]);
+  const y = d3.scaleLinear().domain([0, 700]).range([innerH, 0]);
+  const popExtent = d3.extent(plotData, d => d.pop23);
+  const r = d3.scaleSqrt().domain(popExtent).range([3, 16]);
+
+  function arrowColor(d) {
+    const fbUp = d.fbPctEnd > d.fbPctStart, jobsUp = d.jobsPcEnd > d.jobsPcStart;
+    if (fbUp && jobsUp) return "#00bebe";
+    if (fbUp && !jobsUp) return "#e08020";
+    if (!fbUp && jobsUp) return "#8b5cf6";
+    return "#aaa";
+  }
+
+  g.append("g").attr("class","grid").attr("transform",`translate(0,${innerH})`).call(d3.axisBottom(x).tickSize(-innerH).tickFormat(""));
+  g.append("g").attr("class","grid").call(d3.axisLeft(y).tickSize(-innerW).tickFormat(""));
+  g.append("g").attr("class","axis").attr("transform",`translate(0,${innerH})`).call(d3.axisBottom(x).ticks(10).tickFormat(d=>d+"%")).selectAll("text").attr("dy","1em");
+  g.append("g").attr("class","axis").call(d3.axisLeft(y).ticks(8));
+
+  g.append("text").attr("class","axis-label").attr("x",innerW/2).attr("y",innerH+40).attr("text-anchor","middle").text("Foreign-Born Share of Population \u2192");
+  g.append("text").attr("class","axis-label").attr("transform","rotate(-90)").attr("x",-innerH/2).attr("y",-42).attr("text-anchor","middle").text("\u2191 Industry Jobs per 1,000 Residents");
+
+  const defs = svg.append("defs");
+
+  plotData.forEach((d, i) => {
+    const x1=x(d.fbPctStart),y1=y(d.jobsPcStart),x2=x(d.fbPctEnd),y2=y(d.jobsPcEnd);
+    const col=arrowColor(d), ddx=x2-x1, ddy=y2-y1, dist=Math.sqrt(ddx*ddx+ddy*ddy);
+    if(dist<1)return;
+    const mx=(x1+x2)/2,my=(y1+y2)/2,nx=-ddy/dist,ny=ddx/dist;
+    const bulge=Math.min(dist*0.18,20),cx=mx+nx*bulge,cy=my+ny*bulge;
+    const gradId=`g${i}`;
+    const grad=defs.append("linearGradient").attr("id",gradId).attr("x1",x1).attr("y1",y1).attr("x2",x2).attr("y2",y2).attr("gradientUnits","userSpaceOnUse");
+    grad.append("stop").attr("offset","0%").attr("stop-color",col).attr("stop-opacity",0.25);
+    grad.append("stop").attr("offset","100%").attr("stop-color",col).attr("stop-opacity",0.9);
+    g.append("path").datum(d).attr("class","arrow").attr("d",`M${x1},${y1}Q${cx},${cy},${x2},${y2}`).attr("stroke",`url(#${gradId})`).attr("stroke-width",Math.max(1.2,r(d.pop23)*0.25));
+    const angle=Math.atan2(y2-cy,x2-cx),headLen=Math.max(4,r(d.pop23)*0.5);
+    const ha1=angle+Math.PI*0.82,ha2=angle-Math.PI*0.82;
+    g.append("polygon").datum(d).attr("class","arrow-head").attr("points",[[x2,y2],[x2+Math.cos(ha1)*headLen,y2+Math.sin(ha1)*headLen],[x2+Math.cos(ha2)*headLen,y2+Math.sin(ha2)*headLen]].map(p=>p.join(",")).join(" ")).attr("fill",col).attr("opacity",0.85);
+  });
+
+  g.selectAll(".start-dot").data(plotData).join("circle").attr("class","start-dot")
+    .attr("cx",d=>x(d.fbPctStart)).attr("cy",d=>y(d.jobsPcStart))
+    .attr("r",d=>Math.max(2,r(d.pop23)*0.3)).attr("fill","none").attr("stroke",d=>arrowColor(d)).attr("stroke-width",1).attr("opacity",0.5);
+
+  const labelData=plotData.map(d=>({...d,lx:x(d.fbPctEnd),ly:y(d.jobsPcEnd)}));
+  labelData.sort((a,b)=>a.ly-b.ly);
+  for(let i=1;i<labelData.length;i++){for(let j=0;j<i;j++){if(Math.abs(labelData[i].lx-labelData[j].lx)<60&&Math.abs(labelData[i].ly-labelData[j].ly)<13){labelData[i].ly+=13-Math.abs(labelData[i].ly-labelData[j].ly);}}}
+
+  g.selectAll(".city-label").data(labelData).join("text").attr("class","city-label")
+    .attr("x",d=>d.lx+6).attr("y",d=>d.ly+4).attr("fill",d=>arrowColor(d)).text(d=>d.name);
+
+  const tooltip=d3.select("#tooltip");
+  g.selectAll(".hover-target").data(plotData).join("circle")
+    .attr("cx",d=>x(d.fbPctEnd)).attr("cy",d=>y(d.jobsPcEnd))
+    .attr("r",d=>Math.max(8,r(d.pop23))).attr("fill","transparent").attr("cursor","pointer")
+    .on("mouseenter",(event,d)=>{
+      const fbC=d.fbPctEnd-d.fbPctStart,jC=d.jobsPcEnd-d.jobsPcStart;
+      tooltip.style("display","block").html(`<strong>${d.name}</strong><br><span style="color:#888">Pop ${d.pop23.toLocaleString()}</span><br><br><strong>Foreign-born</strong><br>${d.fbPct15}% \u2192 ${d.fbPct23}% <span style="color:${fbC>=0?'#00bebe':'#e08020'}">(${fbC>=0?'+':''}${fbC.toFixed(1)}pp)</span><br><br><strong>Jobs/1k</strong><br>${d.jobsPcStart.toFixed(1)} \u2192 ${d.jobsPcEnd.toFixed(1)} <span style="color:${jC>=0?'#00bebe':'#e08020'}">(${jC>=0?'+':''}${jC.toFixed(1)})</span>`);
+    })
+    .on("mousemove",(event)=>{tooltip.style("left",(event.clientX+16)+"px").style("top",(event.clientY-16)+"px");})
+    .on("mouseleave",()=>tooltip.style("display","none"));
+})();
+</script>
+</body>
+</html>
