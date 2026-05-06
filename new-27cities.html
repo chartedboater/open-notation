@@ -1621,10 +1621,10 @@ function hideTooltip() { tooltip.style("opacity", 0); }
 {
   const colorImm = "#31a354", colorNon = "#f0ece4";
   const shareData = [
-    { label: "Immigrant-serving", value: 1725, pct: 36.7, imm: true },
-    { label: "Non-immigrant-serving", value: 2981, pct: 63.3, imm: false }
+    { label: "Immigrant-serving", value: 1640, pct: 33.3, imm: true },
+    { label: "Non-immigrant-serving", value: 3281, pct: 66.7, imm: false }
   ];
-  const totalGrowth = 4706;
+  const totalGrowth = 4921;
 
   const margin = { top: 8, right: 20, bottom: 30, left: 20 };
   const w = 660, barH = 48;
@@ -1704,6 +1704,8 @@ function hideTooltip() { tooltip.style("opacity", 0); }
     { city: "Peabody", share: 40.0, immServing: 4, total: 10, downtownImm: true },
     { city: "Fall River", share: 37.5, immServing: 9, total: 24, downtownImm: false },
     { city: "Worcester", share: 35.9, immServing: 14, total: 39, downtownImm: true },
+    { city: "Methuen", share: 31.0, immServing: 9, total: 29, downtownImm: true },
+    { city: "Barnstable", share: 23.1, immServing: 12, total: 52, downtownImm: true },
     { city: "New Bedford", share: 18.2, immServing: 4, total: 22, downtownImm: true },
     { city: "Springfield", share: 3.6, immServing: 1, total: 28, downtownImm: true },
     { city: "Attleboro", share: 0, immServing: 0, total: 16, downtownImm: false },
@@ -1868,9 +1870,10 @@ function hideTooltip() { tooltip.style("opacity", 0); }
   }).addTo(map);
 
   const downtownImm = {
+    "Barnstable":true,
     "Chelsea":true,"Everett":true,"Lynn":true,"Revere":true,"Malden":true,
     "Lawrence":true,"Brockton":true,"Quincy":true,"Lowell":true,"Boston":true,
-    "Peabody":true,"Worcester":true,"New Bedford":true,"Springfield":true,
+    "Peabody":true,"Worcester":true,"Methuen":true,"New Bedford":true,"Springfield":true,
     "Fall River":false,"Attleboro":false,"Chicopee":false,"Fitchburg":false,
     "Haverhill":false,"Holyoke":false,"Leominster":false,"Pittsfield":false,
     "Salem":false,"Taunton":false,"Westfield":false

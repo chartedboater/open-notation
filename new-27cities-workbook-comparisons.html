@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immigrant-Serving District Comparisons</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root {
+    --blue: #3182bd; --green: #31a354; --orange: #ff8000; --text: #313132; --muted: #717375; --rule: #e6e3dc; --pale-blue: #e8e6e1; --pale-green: #f0ece4; --bg: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { width: min(760px, calc(100vw - 32px)); margin: 32px auto 44px; }
+  .page-header { border-top: 4px solid var(--orange); padding-top: 12px; margin-bottom: 28px; }
+  h1 { font-size: 25px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .intro, .note, .source { color: var(--muted); font-size: 13px; line-height: 1.45; }
+  .intro { font-size: 15px; max-width: 660px; }
+  .comparison { border-top: 1px solid var(--rule); padding: 24px 0 26px; }
+  .comparison[data-theme="blue"] { --accent: var(--blue); --pale: var(--pale-blue); }
+  .comparison[data-theme="green"] { --accent: var(--green); --pale: var(--pale-green); }
+  .kicker { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 6px; text-transform: uppercase; }
+  h2 { font-size: 20px; line-height: 1.28; margin: 0 0 7px; letter-spacing: -0.01em; }
+  .dek { color: var(--muted); font-size: 14px; line-height: 1.45; margin-bottom: 16px; max-width: 670px; }
+  .viz-row { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 26px; align-items: center; }
+  svg { overflow: visible; }
+  .legend { display: grid; gap: 9px; font-size: 13px; }
+  .legend-row { display: grid; grid-template-columns: 13px 1fr auto; gap: 8px; align-items: center; }
+  .swatch { width: 13px; height: 13px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.08); }
+  .legend-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bar-value { fill: var(--text); font-size: 12px; font-weight: 700; }
+  .center-big { fill: var(--text); font-size: 31px; font-weight: 700; }
+  .center-small { fill: var(--muted); font-size: 11px; }
+  .source { margin-top: 20px; } .note { margin-top: 8px; }
+  @media (max-width: 620px) { .viz-row { grid-template-columns: 1fr; gap: 12px; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="page-header">
+    <h1>Immigrant-serving district comparisons</h1>
+    <p class="intro">Six workbook-derived comparisons for Gateway City downtown and neighborhood commercial areas. Boston is excluded only where noted, matching the intended scope of the original page.</p>
+  </header>
+  <div id="comparisons"></div>
+  <p class="source">Source: U.S. Census Bureau LODES 8 WAC 2019 and 2023; ACS 2022 5-Year Estimates. Workbook: new imm serv based on new map (3) (2).xlsx. Threshold: &ge;30% foreign-born at census tract level. REUTERS GRAPHICS</p>
+  <p class="note">Note: Downtown job change is framed as a decline because the Boston-excluded downtown universe lost jobs from 2019 to 2023.</p>
+</main>
+<script>
+const workbookMetrics = {
+  "sourceWorkbook": "new imm serv based on new map (3) (2).xlsx",
+  "generatedFromSheet": "Micro Districts",
+  "threshold": ">=30% foreign-born at census tract level",
+  "comparisons": [
+    {
+      "id": "downtown-count-share",
+      "theme": "blue",
+      "type": "share",
+      "kicker": "Comparison 1",
+      "title": "Share of downtowns that are immigrant-serving",
+      "dek": "16 of 27 Gateway City downtowns are immigrant-serving.",
+      "centerLabel": "59%",
+      "subLabel": "of downtowns",
+      "totalLabel": "27 downtowns",
+      "values": [
+        {
+          "label": "Immigrant-serving downtowns",
+          "value": 16,
+          "color": "#3182bd"
+        },
+        {
+          "label": "Not immigrant-serving downtowns",
+          "value": 11,
+          "color": "#e8e6e1"
+        }
+      ]
+    },
+    {
+      "id": "nc-count-share",
+      "theme": "blue",
+      "type": "share",
+      "kicker": "Comparison 2",
+      "title": "Share of neighborhood retail districts that are immigrant-serving",
+      "dek": "240 of 605 neighborhood commercial districts are immigrant-serving.",
+      "centerLabel": "40%",
+      "subLabel": "of districts",
+      "totalLabel": "605 districts",
+      "values": [
+        {
+          "label": "Immigrant-serving districts",
+          "value": 240,
+          "color": "#3182bd"
+        },
+        {
+          "label": "Not immigrant-serving districts",
+          "value": 365,
+          "color": "#e8e6e1"
+        }
+      ]
+    },
+    {
+      "id": "downtown-jobs-share",
+      "theme": "blue",
+      "type": "share",
+      "kicker": "Comparison 3",
+      "title": "Jobs in immigrant-serving downtowns as a share of all downtown jobs, 2023",
+      "dek": "Immigrant-serving downtowns contain 425,686 of 467,838 downtown jobs in 2023.",
+      "centerLabel": "91%",
+      "subLabel": "of jobs",
+      "totalLabel": "467,838 jobs",
+      "values": [
+        {
+          "label": "Jobs in immigrant-serving downtowns",
+          "value": 425686,
+          "color": "#3182bd"
+        },
+        {
+          "label": "Jobs in other downtowns",
+          "value": 42152,
+          "color": "#e8e6e1"
+        }
+      ]
+    },
+    {
+      "id": "downtown-growth-share",
+      "theme": "blue",
+      "type": "change",
+      "kicker": "Comparison 4",
+      "title": "Job decline in immigrant-serving downtowns as a share of net downtown job decline, 2019-2023",
+      "dek": "Excluding Boston, immigrant-serving downtowns lost 4,971 of 5,531 net downtown jobs lost from 2019 to 2023.",
+      "centerLabel": "89.9%",
+      "subLabel": "of net decline",
+      "totalLabel": "Boston excluded; net change: -5,531 jobs",
+      "values": [
+        {
+          "label": "Immigrant-serving downtowns",
+          "value": -4971,
+          "pct": 89.87524859880672,
+          "color": "#3182bd"
+        },
+        {
+          "label": "Other downtowns",
+          "value": -560,
+          "pct": 10.124751401193274,
+          "color": "#86888b"
+        }
+      ]
+    },
+    {
+      "id": "nc-jobs-share",
+      "theme": "green",
+      "type": "share",
+      "kicker": "Comparison 5",
+      "title": "Jobs in immigrant-serving neighborhood commercial areas as a share of all neighborhood commercial area jobs, 2023",
+      "dek": "Excluding Boston, immigrant-serving neighborhood commercial areas contain 62,709 of 121,595 jobs in 2023.",
+      "centerLabel": "52%",
+      "subLabel": "of jobs",
+      "totalLabel": "Boston excluded; 121,595 jobs",
+      "values": [
+        {
+          "label": "Jobs in immigrant-serving areas",
+          "value": 62709,
+          "color": "#31a354"
+        },
+        {
+          "label": "Jobs in other areas",
+          "value": 58886,
+          "color": "#f0ece4"
+        }
+      ]
+    },
+    {
+      "id": "nc-growth-share",
+      "theme": "green",
+      "type": "change",
+      "kicker": "Comparison 6",
+      "title": "Job growth in immigrant-serving neighborhood commercial areas as a share of net neighborhood commercial job growth, 2019-2023",
+      "dek": "Excluding Boston, immigrant-serving neighborhood commercial areas added 1,640 of 4,921 net jobs from 2019 to 2023.",
+      "centerLabel": "33.3%",
+      "subLabel": "of net growth",
+      "totalLabel": "Boston excluded; net change: +4,921 jobs",
+      "values": [
+        {
+          "label": "Immigrant-serving areas",
+          "value": 1640,
+          "pct": 33.32655964234912,
+          "color": "#31a354"
+        },
+        {
+          "label": "Other areas",
+          "value": 3281,
+          "pct": 66.67344035765088,
+          "color": "#86888b"
+        }
+      ]
+    }
+  ]
+};
+const root = d3.select("#comparisons");
+const fmt = d3.format(",");
+const fmtSigned = d3.format("+,d");
+const pct1 = d3.format(".1f");
+workbookMetrics.comparisons.forEach((comparison) => {
+  const section = root.append("section").attr("class", "comparison").attr("data-theme", comparison.theme);
+  section.append("div").attr("class", "kicker").text(comparison.kicker);
+  section.append("h2").text(comparison.title);
+  section.append("div").attr("class", "dek").text(comparison.dek);
+  const row = section.append("div").attr("class", "viz-row");
+  const chart = row.append("svg").attr("id", comparison.id).attr("width", 260).attr("height", 178).attr("viewBox", "0 0 260 178");
+  if (comparison.type === "share") drawDonut(chart, comparison); else drawChange(chart, comparison);
+  const legend = row.append("div").attr("class", "legend");
+  comparison.values.forEach((d) => {
+    const item = legend.append("div").attr("class", "legend-row");
+    item.append("span").attr("class", "swatch").style("background", d.color);
+    item.append("span").text(d.label);
+    item.append("span").attr("class", "legend-value").text(comparison.type === "share" ? fmt(d.value) : `${fmtSigned(d.value)} (${pct1(d.pct)}%)`);
+  });
+  legend.append("div").attr("class", "note").text(comparison.totalLabel);
+});
+function drawDonut(svg, comparison) {
+  const radius = 72, innerRadius = 40;
+  const g = svg.append("g").attr("transform", "translate(89,89)");
+  const pie = d3.pie().value(d => d.value).sort(null);
+  const arc = d3.arc().innerRadius(innerRadius).outerRadius(radius);
+  g.selectAll("path").data(pie(comparison.values)).join("path").attr("d", arc).attr("fill", d => d.data.color).attr("stroke", "#fff").attr("stroke-width", 2.5);
+  g.append("text").attr("class", "center-big").attr("text-anchor", "middle").attr("dy", "-0.08em").text(comparison.centerLabel);
+  g.append("text").attr("class", "center-small").attr("text-anchor", "middle").attr("dy", "1.3em").text(comparison.subLabel);
+}
+function drawChange(svg, comparison) {
+  const margin = { top: 22, right: 50, bottom: 30, left: 50 };
+  const width = 260 - margin.left - margin.right;
+  const height = 178 - margin.top - margin.bottom;
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+  const extent = d3.extent(comparison.values.flatMap(d => [0, d.pct]));
+  const maxAbs = Math.max(Math.abs(extent[0]), Math.abs(extent[1]));
+  const x = d3.scaleLinear().domain([-maxAbs, maxAbs]).range([0, width]);
+  const y = d3.scaleBand().domain(comparison.values.map(d => d.label)).range([0, height]).padding(0.42);
+  g.append("line").attr("x1", x(0)).attr("x2", x(0)).attr("y1", -6).attr("y2", height + 6).attr("stroke", "#b8b8b8").attr("stroke-width", 1);
+  const rows = g.selectAll("g.change-row").data(comparison.values).join("g").attr("class", "change-row").attr("transform", d => `translate(0,${y(d.label)})`);
+  rows.append("rect").attr("x", d => Math.min(x(0), x(d.pct))).attr("width", d => Math.abs(x(d.pct) - x(0))).attr("height", y.bandwidth()).attr("rx", 2).attr("fill", d => d.color);
+  rows.append("text").attr("class", "bar-value").attr("x", d => d.pct >= 0 ? x(d.pct) + 6 : x(d.pct) - 6).attr("y", y.bandwidth() / 2).attr("dy", "0.35em").attr("text-anchor", d => d.pct >= 0 ? "start" : "end").text(d => `${pct1(d.pct)}%`);
+  g.append("text").attr("class", "center-big").attr("x", x(0)).attr("y", -3).attr("text-anchor", "middle").text(comparison.centerLabel);
+  g.append("text").attr("class", "center-small").attr("x", x(0)).attr("y", 13).attr("text-anchor", "middle").text(comparison.subLabel);
+}
+</script>
+</body>
+</html>
