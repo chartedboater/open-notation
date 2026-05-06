@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Immigrant-Serving Districts by City</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root {
+    --brand-primary: #ff8000;
+    --brand-text: #313132;
+    --brand-text-secondary: #717375;
+    --brand-nav: #86888b;
+    --brand-background: #ffffff;
+    --blue: #3182bd;
+    --orange: #e6550d;
+    --red: #de2d26;
+    --green: #31a354;
+    --gray: #666666;
+    --black: #000000;
+    --gray-lite: #cccccc;
+    --white-lite: #f9f9f9;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: #fff;
+    padding: 24px 32px;
+    max-width: 720px;
+    margin: 0 auto;
+    color: var(--brand-text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .chart-container {
+    width: 660px;
+    max-width: 100%;
+    overflow: visible;
+    position: relative;
+  }
+  .chart-container::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    background: #3182bd;
+    border-radius: 2px;
+  }
+
+  .chart-header {
+    border-top: 3px solid var(--brand-primary);
+    padding-top: 10px;
+    margin-bottom: 6px;
+  }
+
+  .chart-header h1 {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--brand-text);
+    line-height: 1.3;
+    letter-spacing: -0.2px;
+    margin-bottom: 6px;
+  }
+
+  .chart-header .dek {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--brand-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .chart-header .dek strong {
+    color: var(--brand-text);
+    font-weight: 600;
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--brand-text-secondary);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .legend-swatch.circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: none;
+    border: 2px solid var(--blue);
+  }
+
+  .source {
+    font-size: 11px;
+    color: var(--brand-nav);
+    margin-top: 10px;
+    line-height: 1.5;
+    border-top: 1px solid #e5e5e5;
+    padding-top: 8px;
+  }
+
+  .city-label {
+    font-size: 12.5px;
+    fill: var(--brand-text-secondary);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  .city-label.has-imm-downtown {
+    font-weight: 700;
+    fill: var(--brand-text);
+  }
+  .value-label {
+    font-size: 11px;
+    fill: var(--brand-text-secondary);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  .value-label.inside {
+    fill: #fff;
+    font-weight: 600;
+  }
+  .axis-label {
+    font-size: 11px;
+    fill: var(--brand-nav);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  .grid-line {
+    stroke: #ebebeb;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+  .annotation-text {
+    font-size: 11px;
+    fill: var(--brand-nav);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-style: italic;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--brand-text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .tooltip .tt-city {
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .tooltip .tt-value {
+    color: var(--brand-text-secondary);
+    font-size: 12px;
+  }
+
+  .bar-row { cursor: pointer; }
+  .bar-row:hover .bar-fg-rect { filter: brightness(0.85); }
+  .bar-row:hover .bar-bg-rect { filter: brightness(0.95); }
+
+  .content-wrapper {
+    padding-left: 28px;
+  }
+</style>
+</head>
+<body>
+<div class="content-wrapper">
+
+<div class="chart-container">
+  <div class="chart-header">
+    <h1>Four cities have every district classified as immigrant-serving</h1>
+    <div class="dek">Share of micro districts classified as immigrant-serving in each Gateway City. Bold names with <span style="color:#3182bd;">&#9675;</span> indicate the downtown itself is immigrant-serving.</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background: #3182bd;"></div>
+      <span>Immigrant-serving districts</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background: #e8e6e1;"></div>
+      <span>Not immigrant-serving</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch circle"></div>
+      <span>Downtown is immigrant-serving</span>
+    </div>
+  </div>
+  <svg id="chart"></svg>
+  <div class="source">Source: U.S. Census Bureau, ACS 2022 5-Year Estimates (B05001, B05002); LODES 8 WAC 2023. Classification threshold: &ge;30% foreign-born at census tract level. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+</div>
+
+<script>
+// ── Shared tooltip ──
+const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+
+function showTooltip(evt, html) {
+  tooltip.html(html).style("opacity", 1);
+  const tx = evt.pageX + 14, ty = evt.pageY - 10;
+  tooltip.style("left", tx + "px").style("top", ty + "px");
+}
+function moveTooltip(evt) {
+  tooltip.style("left", (evt.pageX + 14) + "px").style("top", (evt.pageY - 10) + "px");
+}
+function hideTooltip() { tooltip.style("opacity", 0); }
+
+// ═══════════════════════════════════════
+// CHART 4: Bar — per-city detail
+// ═══════════════════════════════════════
+{
+  const data = [
+    { city: "Chelsea", share: 100, immServing: 8, total: 8, downtownImm: true },
+    { city: "Everett", share: 100, immServing: 8, total: 8, downtownImm: true },
+    { city: "Lynn", share: 100, immServing: 16, total: 16, downtownImm: true },
+    { city: "Revere", share: 100, immServing: 15, total: 15, downtownImm: true },
+    { city: "Malden", share: 89.5, immServing: 17, total: 19, downtownImm: true },
+    { city: "Lawrence", share: 87.5, immServing: 14, total: 16, downtownImm: true },
+    { city: "Brockton", share: 85.7, immServing: 18, total: 21, downtownImm: true },
+    { city: "Quincy", share: 60.0, immServing: 24, total: 40, downtownImm: true },
+    { city: "Lowell", share: 58.3, immServing: 14, total: 24, downtownImm: true },
+    { city: "Boston", share: 57.0, immServing: 69, total: 121, downtownImm: true },
+    { city: "Peabody", share: 40.0, immServing: 4, total: 10, downtownImm: true },
+    { city: "Fall River", share: 37.5, immServing: 9, total: 24, downtownImm: false },
+    { city: "Worcester", share: 35.9, immServing: 14, total: 39, downtownImm: true },
+    { city: "New Bedford", share: 18.2, immServing: 4, total: 22, downtownImm: true },
+    { city: "Springfield", share: 3.6, immServing: 1, total: 28, downtownImm: true },
+    { city: "Attleboro", share: 0, immServing: 0, total: 16, downtownImm: false },
+    { city: "Chicopee", share: 0, immServing: 0, total: 23, downtownImm: false },
+    { city: "Fitchburg", share: 0, immServing: 0, total: 16, downtownImm: false },
+    { city: "Haverhill", share: 0, immServing: 0, total: 12, downtownImm: false },
+    { city: "Holyoke", share: 0, immServing: 0, total: 12, downtownImm: false },
+    { city: "Leominster", share: 0, immServing: 0, total: 10, downtownImm: false },
+    { city: "Pittsfield", share: 0, immServing: 0, total: 14, downtownImm: false },
+    { city: "Salem", share: 0, immServing: 0, total: 15, downtownImm: false },
+    { city: "Taunton", share: 0, immServing: 0, total: 12, downtownImm: false },
+    { city: "Westfield", share: 0, immServing: 0, total: 10, downtownImm: false }
+  ];
+
+  const colorActive = "#3182bd";
+  const colorBg = "#e8e6e1";
+  const colorAccent = "#3182bd";
+
+  const margin = { top: 4, right: 52, bottom: 24, left: 96 };
+  const barHeight = 20;
+  const barGap = 6;
+  const width = 660;
+  const chartHeight = data.length * (barHeight + barGap) - barGap;
+  const height = chartHeight + margin.top + margin.bottom;
+
+  const svg = d3.select("#chart")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("viewBox", `0 0 ${width} ${height}`);
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const chartWidth = width - margin.left - margin.right;
+
+  const x = d3.scaleLinear().domain([0, 100]).range([0, chartWidth]);
+  const y = d3.scaleBand()
+    .domain(data.map(d => d.city))
+    .range([0, chartHeight])
+    .paddingInner(barGap / (barHeight + barGap))
+    .paddingOuter(0);
+
+  // Grid lines
+  [25, 50, 75, 100].forEach(t => {
+    g.append("line").attr("class", "grid-line")
+      .attr("x1", x(t)).attr("x2", x(t)).attr("y1", -2).attr("y2", chartHeight + 2);
+  });
+
+  // Axis labels
+  [0, 25, 50, 75, 100].forEach(t => {
+    g.append("text").attr("class", "axis-label")
+      .attr("x", x(t)).attr("y", chartHeight + 18)
+      .attr("text-anchor", "middle").text(t + "%");
+  });
+
+  // Zero baseline
+  g.append("line")
+    .attr("x1", 0).attr("x2", 0).attr("y1", -2).attr("y2", chartHeight + 2)
+    .attr("stroke", "#ccc").attr("stroke-width", 1).attr("shape-rendering", "crispEdges");
+
+  // Row groups (for hover interaction)
+  const rows = g.selectAll(".bar-row")
+    .data(data)
+    .join("g")
+    .attr("class", "bar-row")
+    .attr("transform", d => `translate(0,${y(d.city)})`)
+    .on("mouseenter", function(evt, d) {
+      showTooltip(evt,
+        `<div class="tt-city">${d.city}</div>
+         <div class="tt-value">${d.immServing} of ${d.total} districts are immigrant-serving (${Math.round(d.share)}%)</div>
+         <div class="tt-value">Downtown: ${d.downtownImm ? 'Yes' : 'No'}</div>`);
+    })
+    .on("mousemove", moveTooltip)
+    .on("mouseleave", hideTooltip);
+
+  // Hit area (invisible full-width rect for hover)
+  rows.append("rect")
+    .attr("x", -margin.left).attr("width", width)
+    .attr("height", y.bandwidth())
+    .attr("fill", "transparent");
+
+  // Background bar
+  rows.append("rect")
+    .attr("class", "bar-bg-rect")
+    .attr("x", 0).attr("width", x(100))
+    .attr("height", y.bandwidth())
+    .attr("fill", colorBg);
+
+  // Foreground bar
+  rows.append("rect")
+    .attr("class", "bar-fg-rect")
+    .attr("x", 0)
+    .attr("width", d => Math.max(x(d.share), 0))
+    .attr("height", y.bandwidth())
+    .attr("fill", colorActive);
+
+  // City labels
+  rows.append("text")
+    .attr("class", d => `city-label${d.downtownImm ? ' has-imm-downtown' : ''}`)
+    .attr("x", -8)
+    .attr("y", y.bandwidth() / 2)
+    .attr("dy", "0.35em")
+    .attr("text-anchor", "end")
+    .text(d => d.city);
+
+  // Downtown dot
+  rows.filter(d => d.downtownImm)
+    .append("circle")
+    .attr("cx", -4)
+    .attr("cy", y.bandwidth() / 2)
+    .attr("r", 3)
+    .attr("fill", "none")
+    .attr("stroke", colorAccent)
+    .attr("stroke-width", 1.5);
+
+  // Value labels
+  rows.append("text")
+    .attr("class", d => d.share >= 50 ? "value-label inside" : "value-label")
+    .attr("x", d => {
+      if (d.share >= 50) return x(d.share) - 5;
+      return x(d.share) + 5;
+    })
+    .attr("y", y.bandwidth() / 2)
+    .attr("dy", "0.35em")
+    .attr("text-anchor", d => d.share >= 50 ? "end" : "start")
+    .text(d => `${d.immServing}/${d.total}`);
+
+  // Divider annotation
+  const dividerIndex = data.findIndex(d => d.share === 0);
+  if (dividerIndex > 0) {
+    const dividerY = (y(data[dividerIndex - 1].city) + y.bandwidth() + y(data[dividerIndex].city)) / 2;
+    g.append("line")
+      .attr("x1", 0).attr("x2", chartWidth)
+      .attr("y1", dividerY).attr("y2", dividerY)
+      .attr("stroke", "#d0d0d0").attr("stroke-width", 0.5)
+      .attr("stroke-dasharray", "3,3");
+
+    g.append("text")
+      .attr("class", "annotation-text")
+      .attr("x", chartWidth).attr("y", dividerY - 5)
+      .attr("text-anchor", "end")
+      .text("No immigrant-serving districts");
+  }
+}
+
+// ── Height reporting ──
+function reportHeight() {
+  if (window.parent !== window) {
+    window.parent.postMessage({"embed-height": document.documentElement.scrollHeight}, "*");
+  }
+}
+window.addEventListener("load", reportHeight);
+window.addEventListener("resize", reportHeight);
+</script>
+</body>
+</html>

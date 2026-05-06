@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Barnstable/Methuen Block Overlay</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; }
+  #map { height: 100vh; width: 100vw; }
+  .legend {
+    background: white; padding: 12px 16px; border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2); line-height: 1.8; font-size: 13px;
+  }
+  .legend b { font-size: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-swatch { width: 18px; height: 14px; border: 1px solid #666; border-radius: 2px; flex-shrink: 0; }
+  .info-panel {
+    background: white; padding: 12px 16px; border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 13px; max-width: 280px;
+  }
+  .info-panel b { font-size: 14px; }
+  .city-btn {
+    padding: 8px 16px; margin: 4px; border: 2px solid #333; border-radius: 6px;
+    background: white; cursor: pointer; font-size: 14px; font-weight: 600;
+  }
+  .city-btn:hover { background: #f0f0f0; }
+  .city-btn.active { background: #333; color: white; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+const map = L.map('map', { center: [41.68, -70.32], zoom: 12 });
+
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Esri', maxZoom: 19
+}).addTo(map);
+
+L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}.png', {
+  opacity: 0.7, maxZoom: 19
+}).addTo(map);
+
+const colors = {
+  downtown: '#e74c3c',
+  neighborhood: '#f39c12',
+  filtered_mfg: '#9b59b6',
+  filtered_hc: '#e91e9e',
+  filtered_pop: '#00bcd4',
+  filtered_zoning: '#ff5722',
+  below_threshold: '#95a5a6',
+  no_jobs: '#555555'
+};
+
+const labels = {
+  downtown: 'Downtown (unchanged)',
+  neighborhood: 'Neighborhood Commercial',
+  filtered_mfg: 'Removed: Manufacturing (CNS05 > 0)',
+  filtered_hc: 'Removed: Healthcare dominant (CNS16)',
+  filtered_pop: 'Removed: Zero residents (POP20 = 0)',
+  filtered_zoning: 'Removed: Highway Business zone (BH)',
+  below_threshold: 'Below 65th pctile (has jobs)',
+  no_jobs: 'Zero jobs (excluded from ranking)'
+};
+
+const opacities = {
+  downtown: 0.55,
+  neighborhood: 0.5,
+  filtered_mfg: 0.5,
+  filtered_hc: 0.5,
+  filtered_pop: 0.5,
+  filtered_zoning: 0.5,
+  below_threshold: 0.08,
+  no_jobs: 0.04
+};
+
+let geojsonLayer = null;
+
+fetch('/barnstable_blocks_temp.geojson?' + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    geojsonLayer = L.geoJSON(data, {
+      style: f => ({
+        fillColor: colors[f.properties.new_type] || '#ccc',
+        fillOpacity: opacities[f.properties.new_type] || 0.1,
+        color: colors[f.properties.new_type] || '#ccc',
+        weight: f.properties.new_type === 'below_threshold' ? 0.3 : 1.5,
+        opacity: 0.8
+      }),
+      onEachFeature: (f, layer) => {
+        const p = f.properties;
+        let html = `<b style="color:${colors[p.new_type]}">${labels[p.new_type]}</b><br>`;
+        html += `<b>GEOID:</b> ${p.GEOID}<br>`;
+        html += `<b>City:</b> ${p.city_name}<br>`;
+        html += `<b>Total Jobs:</b> ${Math.round(p.C000)}<br>`;
+        html += `<b>Secondary Score:</b> ${p.sec_score || 'N/A'}<br>`;
+        if (p.new_type === 'filtered_mfg') {
+          html += `<b>Filtered:</b> Manufacturing (CNS05 = ${Math.round(p.CNS05)})<br>`;
+        } else if (p.new_type === 'filtered_hc') {
+          html += `<b>Filtered:</b> Healthcare (${p.max_sector}) is largest sector<br>`;
+        } else if (p.new_type === 'filtered_pop') {
+          html += `<b>Filtered:</b> Zero residents (POP20 = ${p.POP20})<br>`;
+        } else if (p.new_type === 'filtered_zoning') {
+          html += `<b>Filtered:</b> Highway Business (BH) zoning district<br>`;
+        }
+        html += `<b>Residents:</b> ${Math.round(p.POP20)}<br>`;
+        layer.bindPopup(html);
+      }
+    }).addTo(map);
+
+    // Summary stats
+    const stats = {};
+    data.features.forEach(f => {
+      const city = f.properties.city_name;
+      const t = f.properties.new_type;
+      if (!stats[city]) stats[city] = {};
+      if (!stats[city][t]) stats[city][t] = { n: 0, jobs: 0 };
+      stats[city][t].n++;
+      stats[city][t].jobs += f.properties.C000 || 0;
+    });
+
+    // Update info panel
+    updateInfo('Barnstable', stats);
+
+    // City buttons
+    document.getElementById('btn-barn').onclick = () => {
+      map.flyTo([41.68, -70.32], 12);
+      updateInfo('Barnstable', stats);
+      document.getElementById('btn-barn').classList.add('active');
+      document.getElementById('btn-meth').classList.remove('active');
+    };
+    document.getElementById('btn-meth').onclick = () => {
+      map.flyTo([42.73, -71.19], 13);
+      updateInfo('Methuen', stats);
+      document.getElementById('btn-meth').classList.add('active');
+      document.getElementById('btn-barn').classList.remove('active');
+    };
+  });
+
+function updateInfo(city, stats) {
+  const s = stats[city] || {};
+  let html = `<b>${city}</b><br><br>`;
+  for (const [type, label] of Object.entries(labels)) {
+    if (s[type]) {
+      html += `<div class="legend-item"><span class="legend-swatch" style="background:${colors[type]}; opacity:${opacities[type]+0.3}"></span>${s[type].n} blocks, ${Math.round(s[type].jobs).toLocaleString()} jobs</div>`;
+    }
+  }
+  document.getElementById('info-content').innerHTML = html;
+}
+
+// Legend
+const legend = L.control({ position: 'bottomleft' });
+legend.onAdd = () => {
+  const div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = '<b>Block Classification</b><br><br>';
+  for (const [type, label] of Object.entries(labels)) {
+    div.innerHTML += `<div class="legend-item"><span class="legend-swatch" style="background:${colors[type]}; opacity:${opacities[type]+0.3}"></span>${label}</div>`;
+  }
+  return div;
+};
+legend.addTo(map);
+
+// City selector
+const cityCtrl = L.control({ position: 'topright' });
+cityCtrl.onAdd = () => {
+  const div = L.DomUtil.create('div');
+  div.innerHTML = '<button class="city-btn active" id="btn-barn">Barnstable</button><button class="city-btn" id="btn-meth">Methuen</button>';
+  L.DomEvent.disableClickPropagation(div);
+  return div;
+};
+cityCtrl.addTo(map);
+
+// Info panel
+const infoCtrl = L.control({ position: 'topleft' });
+infoCtrl.onAdd = () => {
+  const div = L.DomUtil.create('div', 'info-panel');
+  div.id = 'info-content';
+  div.innerHTML = 'Loading...';
+  L.DomEvent.disableClickPropagation(div);
+  return div;
+};
+infoCtrl.addTo(map);
+</script>
+</body>
+</html>

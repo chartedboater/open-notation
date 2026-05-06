@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Share of Downtowns That Are Immigrant-Serving</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root {
+    /* @reuters-graphics/style-color: brand */
+    --brand-primary: #ff8000;
+    --brand-text: #313132;
+    --brand-text-secondary: #717375;
+    --brand-nav: #86888b;
+    --brand-background: #ffffff;
+    /* @reuters-graphics/style-color: categorical/base */
+    --blue: #3182bd;
+    --orange: #e6550d;
+    --red: #de2d26;
+    --green: #31a354;
+    --gray: #666666;
+    --black: #000000;
+    /* @reuters-graphics/style-color: categorical/base-lite */
+    --gray-lite: #cccccc;
+    --white-lite: #f9f9f9;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: #fff;
+    color: var(--brand-text);
+    padding: 24px 32px;
+    max-width: 720px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .chart-container {
+    width: 660px;
+    max-width: 100%;
+    overflow: visible;
+    position: relative;
+    margin-bottom: 48px;
+  }
+
+  /* Reuters orange top rule */
+  .chart-header {
+    border-top: 3px solid var(--brand-primary);
+    padding-top: 10px;
+    margin-bottom: 6px;
+  }
+
+  .chart-header h1 {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--brand-text);
+    line-height: 1.3;
+    letter-spacing: -0.2px;
+    margin-bottom: 6px;
+  }
+
+  .chart-header .dek {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--brand-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .chart-header .dek strong {
+    color: var(--brand-text);
+    font-weight: 600;
+  }
+
+  .source {
+    font-size: 11px;
+    color: var(--brand-nav);
+    margin-top: 10px;
+    line-height: 1.5;
+    border-top: 1px solid #e5e5e5;
+    padding-top: 8px;
+  }
+
+  .pie-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    padding: 24px 0 16px;
+  }
+  #pie-chart {
+    overflow: visible;
+  }
+  .pie-label-group {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .pie-label-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--brand-text-secondary);
+  }
+  .pie-label-row .pie-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .pie-label-row .pie-count {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-text);
+    line-height: 1;
+  }
+  .pie-center-text {
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--brand-text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .tooltip .tt-city {
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .tooltip .tt-value {
+    color: var(--brand-text-secondary);
+    font-size: 12px;
+  }
+  /* Hover states */
+  .pie-slice { cursor: pointer; transition: opacity 0.15s ease; }
+  .pie-slice:hover { opacity: 0.8; }
+</style>
+</head>
+<body>
+
+<!-- CHART 1: Downtown donut (14/25) -->
+<div class="chart-container">
+  <div class="chart-header">
+    <h1>More than half of Gateway City downtowns are immigrant-serving</h1>
+    <div class="dek">Of the 25 Massachusetts Gateway City downtowns, <strong>14 (56%)</strong> are located in census tracts where at least 30% of the population is foreign-born.</div>
+  </div>
+  <div class="pie-body">
+    <svg id="pie-chart"></svg>
+    <div class="pie-label-group">
+      <div class="pie-label-row">
+        <div class="pie-swatch" style="background: #3182bd;"></div>
+        <span><span class="pie-count">14</span> immigrant-serving</span>
+      </div>
+      <div class="pie-label-row">
+        <div class="pie-swatch" style="background: #e8e6e1;"></div>
+        <span><span class="pie-count">11</span> not immigrant-serving</span>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: U.S. Census Bureau, ACS 2022 5-Year Estimates (B05001, B05002). Threshold: &ge;30% foreign-born at census tract level. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+<!-- CHART 3c: Donut excl. Boston (13/24) -->
+<div class="chart-container">
+  <div class="chart-header">
+    <h1>Excluding Boston, more than half of downtowns are still immigrant-serving</h1>
+    <div class="dek">Of the 24 remaining Gateway City downtowns, <strong>13 (54%)</strong> meet the 30% foreign-born threshold.</div>
+  </div>
+  <div class="pie-body">
+    <svg id="pie-chart-xbos"></svg>
+    <div class="pie-label-group">
+      <div class="pie-label-row">
+        <div class="pie-swatch" style="background: #3182bd;"></div>
+        <span><span class="pie-count">13</span> immigrant-serving</span>
+      </div>
+      <div class="pie-label-row">
+        <div class="pie-swatch" style="background: #e8e6e1;"></div>
+        <span><span class="pie-count">11</span> not immigrant-serving</span>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: U.S. Census Bureau, ACS 2022 5-Year Estimates (B05001, B05002). Boston excluded. Threshold: &ge;30% foreign-born at census tract level. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+<script>
+// ── Shared tooltip ──
+const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+
+function showTooltip(evt, html) {
+  tooltip.html(html).style("opacity", 1);
+  const tx = evt.pageX + 14, ty = evt.pageY - 10;
+  tooltip.style("left", tx + "px").style("top", ty + "px");
+}
+function moveTooltip(evt) {
+  tooltip.style("left", (evt.pageX + 14) + "px").style("top", (evt.pageY - 10) + "px");
+}
+function hideTooltip() { tooltip.style("opacity", 0); }
+
+// ═══════════════════════════════════════
+// CHART 1: Donut — downtown summary
+// ═══════════════════════════════════════
+{
+  const pieSize = 160;
+  const radius = pieSize / 2;
+  const innerRadius = radius * 0.52;
+
+  const pieSvg = d3.select("#pie-chart")
+    .attr("width", pieSize)
+    .attr("height", pieSize)
+    .append("g")
+    .attr("transform", `translate(${radius},${radius})`);
+
+  const pieData = [
+    { label: "Immigrant-serving", value: 14 },
+    { label: "Not immigrant-serving", value: 11 }
+  ];
+  const pieColors = ["#3182bd", "#e8e6e1"];
+
+  const pie = d3.pie().value(d => d.value).sort(null);
+  const arcGen = d3.arc().innerRadius(innerRadius).outerRadius(radius);
+  const arcHover = d3.arc().innerRadius(innerRadius).outerRadius(radius + 6);
+
+  pieSvg.selectAll("path")
+    .data(pie(pieData))
+    .join("path")
+    .attr("class", "pie-slice")
+    .attr("d", arcGen)
+    .attr("fill", (d, i) => pieColors[i])
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 2.5)
+    .on("mouseenter", function(evt, d) {
+      d3.select(this).transition().duration(150).attr("d", arcHover);
+      const pct = Math.round(d.data.value / 25 * 100);
+      showTooltip(evt,
+        `<div class="tt-city">${d.data.label}</div>
+         <div class="tt-value">${d.data.value} of 25 downtowns (${pct}%)</div>`);
+    })
+    .on("mousemove", moveTooltip)
+    .on("mouseleave", function() {
+      d3.select(this).transition().duration(150).attr("d", arcGen);
+      hideTooltip();
+    });
+
+  // Center label
+  pieSvg.append("text")
+    .attr("class", "pie-center-text")
+    .attr("text-anchor", "middle")
+    .attr("dy", "-0.1em")
+    .attr("font-size", "32px")
+    .attr("font-weight", "700")
+    .attr("fill", "#313132")
+    .text("56%");
+
+  pieSvg.append("text")
+    .attr("class", "pie-center-text")
+    .attr("text-anchor", "middle")
+    .attr("dy", "1.2em")
+    .attr("font-size", "11px")
+    .attr("fill", "#86888b")
+    .text("of downtowns");
+}
+
+// ═══════════════════════════════════════
+// CHART 3c: Donut — downtowns excl. Boston
+// ═══════════════════════════════════════
+{
+  const pieSize = 160;
+  const radius = pieSize / 2;
+  const innerRadius = radius * 0.52;
+
+  const pieSvg = d3.select("#pie-chart-xbos")
+    .attr("width", pieSize)
+    .attr("height", pieSize)
+    .style("overflow", "visible")
+    .append("g")
+    .attr("transform", `translate(${radius},${radius})`);
+
+  const pieData = [
+    { label: "Immigrant-serving", value: 13 },
+    { label: "Not immigrant-serving", value: 11 }
+  ];
+  const pieColors = ["#3182bd", "#e8e6e1"];
+  const total = 24;
+
+  const pie = d3.pie().value(d => d.value).sort(null);
+  const arcGen = d3.arc().innerRadius(innerRadius).outerRadius(radius);
+  const arcHover = d3.arc().innerRadius(innerRadius).outerRadius(radius + 6);
+
+  pieSvg.selectAll("path")
+    .data(pie(pieData))
+    .join("path")
+    .attr("class", "pie-slice")
+    .attr("d", arcGen)
+    .attr("fill", (d, i) => pieColors[i])
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 2.5)
+    .on("mouseenter", function(evt, d) {
+      d3.select(this).transition().duration(150).attr("d", arcHover);
+      const pct = Math.round(d.data.value / total * 100);
+      showTooltip(evt,
+        `<div class="tt-city">${d.data.label}</div>
+         <div class="tt-value">${d.data.value} of ${total} downtowns (${pct}%)</div>`);
+    })
+    .on("mousemove", moveTooltip)
+    .on("mouseleave", function() {
+      d3.select(this).transition().duration(150).attr("d", arcGen);
+      hideTooltip();
+    });
+
+  pieSvg.append("text")
+    .attr("class", "pie-center-text")
+    .attr("text-anchor", "middle")
+    .attr("dy", "-0.1em")
+    .attr("font-size", "32px")
+    .attr("font-weight", "700")
+    .attr("fill", "#313132")
+    .text("54%");
+
+  pieSvg.append("text")
+    .attr("class", "pie-center-text")
+    .attr("text-anchor", "middle")
+    .attr("dy", "1.2em")
+    .attr("font-size", "11px")
+    .attr("fill", "#86888b")
+    .text("of downtowns");
+}
+
+// ── PostMessage height reporting ──
+function reportHeight() { if (window.parent !== window) window.parent.postMessage({"embed-height": document.documentElement.scrollHeight}, "*"); }
+window.addEventListener("load", reportHeight);
+window.addEventListener("resize", reportHeight);
+</script>
+</body>
+</html>

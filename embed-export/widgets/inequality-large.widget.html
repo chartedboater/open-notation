@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foreign-Born Share vs. Jobs — Large Gateway Cities</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Libre Franklin', system-ui, sans-serif;
+    background: #fafafa; color: #222;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 100vh; padding: 8px;
+  }
+  #chart { display: block; width: 100%; }
+  .axis text { font-family: 'Libre Franklin', sans-serif; font-size: 11px; fill: #888; }
+  .axis line, .axis path { stroke: #e0e0e0; }
+  .grid line { stroke: #f0f0f0; stroke-dasharray: 2,3; }
+  .grid path { display: none; }
+  .arrow { fill: none; stroke-linecap: round; }
+  .arrow-head { stroke: none; }
+  .city-label { font-family: 'Libre Franklin', sans-serif; font-weight: 600; font-size: 11px; pointer-events: none; }
+  .axis-label { font-family: 'Libre Franklin', sans-serif; font-weight: 300; font-size: 12px; fill: #999; letter-spacing: 0.05em; }
+  #tooltip {
+    position: fixed; pointer-events: none; background: white;
+    border: 1px solid #ddd; padding: 10px 14px;
+    font-size: 0.78rem; line-height: 1.5;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    display: none; z-index: 100; max-width: 280px; border-radius: 2px;
+  }
+  .legend-wrap { display: flex; gap: 16px; margin-bottom: 4px; flex-wrap: wrap; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.65rem; color: #888; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .source { font-size: 0.6rem; color: #aaa; text-align: center; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="legend-wrap">
+  <div class="legend-item"><div class="legend-dot" style="background:#00bebe;"></div> Growing fb% &amp; jobs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e08020;"></div> Growing fb%, declining jobs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6;"></div> Declining fb%, growing jobs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#aaa;"></div> Declining both</div>
+  <div class="legend-item"><svg width="8" height="8"><circle cx="4" cy="4" r="3" fill="none" stroke="#333" stroke-width="1"/></svg> 2015</div>
+  <div class="legend-item"><svg width="10" height="8"><polygon points="5,0 10,8 0,8" fill="#333"/></svg> 2023</div>
+</div>
+<svg id="chart"></svg>
+<div id="tooltip"></div>
+<div class="source">ACS 5-Year Estimates; LODES Workplace Data. Large MA Gateway Cities (pop &gt; 40k).</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+const DATA=[{"name":"Boston","pop15":650281,"pop23":663972,"fb15":177563,"fb23":182633,"fbPct15":27.3,"fbPct23":27.5,"jobs15":141564,"jobs22":179430,"highlight":true},{"name":"Worcester","pop15":183382,"pop23":205501,"fb15":40203,"fb23":47623,"fbPct15":21.9,"fbPct23":23.2,"jobs15":15667,"jobs22":16991,"highlight":true},{"name":"Springfield","pop15":153947,"pop23":154751,"fb15":15908,"fb23":15767,"fbPct15":10.3,"fbPct23":10.2,"jobs15":10711,"jobs22":10590,"highlight":true},{"name":"Cambridge","pop15":107916,"pop23":117794,"fb15":29231,"fb23":33920,"fbPct15":27.1,"fbPct23":28.8,"jobs15":44351,"jobs22":75655,"highlight":true},{"name":"Lowell","pop15":109349,"pop23":114799,"fb15":28217,"fb23":33865,"fbPct15":25.8,"fbPct23":29.5,"jobs15":6197,"jobs22":7527,"highlight":true},{"name":"Brockton","pop15":94532,"pop23":105080,"fb15":24613,"fb23":34552,"fbPct15":26.0,"fbPct23":32.9,"jobs15":7504,"jobs22":6946,"highlight":true},{"name":"Quincy","pop15":93177,"pop23":101361,"fb15":27630,"fb23":33180,"fbPct15":29.7,"fbPct23":32.7,"jobs15":11814,"jobs22":14865,"highlight":true},{"name":"Lynn","pop15":91626,"pop23":100905,"fb15":29584,"fb23":36056,"fbPct15":32.3,"fbPct23":35.7,"jobs15":3733,"jobs22":4185,"highlight":true},{"name":"New Bedford","pop15":94909,"pop23":100731,"fb15":19606,"fb23":20895,"fbPct15":20.7,"fbPct23":20.7,"jobs15":5055,"jobs22":4899,"highlight":true},{"name":"Fall River","pop15":88727,"pop23":93764,"fb15":16827,"fb23":20458,"fbPct15":19.0,"fbPct23":21.8,"jobs15":4864,"jobs22":5348,"highlight":true},{"name":"Newton","pop15":87675,"pop23":88504,"fb15":19183,"fb23":20831,"fbPct15":21.9,"fbPct23":23.5,"jobs15":14535,"jobs22":14210,"highlight":true},{"name":"Lawrence","pop15":78804,"pop23":88297,"fb15":29445,"fb23":38601,"fbPct15":37.4,"fbPct23":43.7,"jobs15":3605,"jobs22":4693,"highlight":true},{"name":"Somerville","pop15":78595,"pop23":80549,"fb15":19397,"fb23":19972,"fbPct15":24.7,"fbPct23":24.8,"jobs15":7099,"jobs22":9444,"highlight":true},{"name":"Haverhill","pop15":62079,"pop23":67387,"fb15":5645,"fb23":9023,"fbPct15":9.1,"fbPct23":13.4,"jobs15":4174,"jobs22":4263,"highlight":true},{"name":"Malden","pop15":60612,"pop23":65509,"fb15":26198,"fb23":26705,"fbPct15":43.2,"fbPct23":40.8,"jobs15":2908,"jobs22":2746,"highlight":true},{"name":"Waltham","pop15":62438,"pop23":64723,"fb15":16350,"fb23":17229,"fbPct15":26.2,"fbPct23":26.6,"jobs15":23559,"jobs22":25248,"highlight":true},{"name":"Brookline","pop15":59132,"pop23":62822,"fb15":15233,"fb23":17300,"fbPct15":25.8,"fbPct23":27.5,"jobs15":4179,"jobs22":4516,"highlight":true},{"name":"Plymouth","pop15":57848,"pop23":62656,"fb15":3151,"fb23":4003,"fbPct15":5.4,"fbPct23":6.4,"jobs15":6140,"jobs22":6897,"highlight":false},{"name":"Revere","pop15":53095,"pop23":59933,"fb15":18511,"fb23":26092,"fbPct15":34.9,"fbPct23":43.5,"jobs15":2778,"jobs22":3023,"highlight":true},{"name":"Taunton","pop15":56276,"pop23":59719,"fb15":6835,"fb23":8415,"fbPct15":12.1,"fbPct23":14.1,"jobs15":6859,"jobs22":6018,"highlight":false},{"name":"Medford","pop15":57136,"pop23":59062,"fb15":13031,"fb23":14267,"fbPct15":22.8,"fbPct23":24.2,"jobs15":4400,"jobs22":6672,"highlight":true},{"name":"Weymouth","pop15":55304,"pop23":57786,"fb15":5534,"fb23":7906,"fbPct15":10.0,"fbPct23":13.7,"jobs15":4992,"jobs22":5738,"highlight":false},{"name":"Chicopee","pop15":56186,"pop23":55213,"fb15":5203,"fb23":5346,"fbPct15":9.3,"fbPct23":9.7,"jobs15":4627,"jobs22":4808,"highlight":false},{"name":"Peabody","pop15":52065,"pop23":54180,"fb15":7731,"fb23":9306,"fbPct15":14.8,"fbPct23":17.2,"jobs15":7409,"jobs22":6695,"highlight":false},{"name":"Methuen","pop15":48607,"pop23":53043,"fb15":7993,"fb23":12737,"fbPct15":16.4,"fbPct23":24.0,"jobs15":3956,"jobs22":3580,"highlight":true},{"name":"Everett","pop15":43885,"pop23":49236,"fb15":17863,"fb23":22386,"fbPct15":40.7,"fbPct23":45.5,"jobs15":3466,"jobs22":3216,"highlight":true},{"name":"Barnstable","pop15":44591,"pop23":49232,"fb15":4593,"fb23":8470,"fbPct15":10.3,"fbPct23":17.2,"jobs15":6130,"jobs22":6461,"highlight":false},{"name":"Attleboro","pop15":43953,"pop23":46499,"fb15":4260,"fb23":5855,"fbPct15":9.7,"fbPct23":12.6,"jobs15":3759,"jobs22":3968,"highlight":false},{"name":"Arlington","pop15":44128,"pop23":46015,"fb15":7878,"fb23":8134,"fbPct15":17.9,"fbPct23":17.7,"jobs15":2882,"jobs22":3588,"highlight":false},{"name":"Salem","pop15":42499,"pop23":44241,"fb15":6208,"fb23":6835,"fbPct15":14.6,"fbPct23":15.4,"jobs15":4037,"jobs22":4250,"highlight":true},{"name":"Leominster","pop15":41176,"pop23":43697,"fb15":4505,"fb23":6697,"fbPct15":10.9,"fbPct23":15.3,"jobs15":5421,"jobs22":5315,"highlight":false},{"name":"Pittsfield","pop15":43926,"pop23":43559,"fb15":2757,"fb23":2970,"fbPct15":6.3,"fbPct23":6.8,"jobs15":6115,"jobs22":6218,"highlight":false},{"name":"Beverly","pop15":40670,"pop23":42408,"fb15":2363,"fb23":4095,"fbPct15":5.8,"fbPct23":9.7,"jobs15":4307,"jobs22":5196,"highlight":false},{"name":"Billerica","pop15":41956,"pop23":41700,"fb15":3632,"fb23":6223,"fbPct15":8.7,"fbPct23":14.9,"jobs15":7525,"jobs22":9614,"highlight":false},{"name":"Fitchburg","pop15":40462,"pop23":41633,"fb15":4610,"fb23":4333,"fbPct15":11.4,"fbPct23":10.4,"jobs15":2375,"jobs22":2310,"highlight":false},{"name":"Marlborough","pop15":39425,"pop23":41398,"fb15":9594,"fb23":12176,"fbPct15":24.3,"fbPct23":29.4,"jobs15":9877,"jobs22":9193,"highlight":false},{"name":"Woburn","pop15":39104,"pop23":41205,"fb15":6544,"fb23":8316,"fbPct15":16.7,"fbPct23":20.2,"jobs15":14704,"jobs22":15951,"highlight":false},{"name":"Westfield","pop15":41480,"pop23":40673,"fb15":3962,"fb23":4074,"fbPct15":9.6,"fbPct23":10.0,"jobs15":3602,"jobs22":3842,"highlight":false}];
+
+(function() {
+  const data = DATA;
+  const margin = { top: 10, right: 50, bottom: 50, left: 60 };
+  const width = 960, height = 700;
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const svg = d3.select("#chart").attr("viewBox", [0, 0, width, height]);
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+  data.forEach(d => {
+    d.fbPctStart = d.fbPct15; d.fbPctEnd = d.fbPct23;
+    d.jobsPcStart = d.pop15 > 0 ? (d.jobs15 / d.pop15) * 1000 : 0;
+    d.jobsPcEnd = d.pop23 > 0 ? (d.jobs22 / d.pop23) * 1000 : 0;
+  });
+  const plotData = data.filter(d => d.jobsPcStart > 0 || d.jobsPcEnd > 0);
+
+  const x = d3.scaleLinear().domain([0, 50]).range([0, innerW]);
+  const y = d3.scaleLinear().domain([0, 700]).range([innerH, 0]);
+  const popExtent = d3.extent(plotData, d => d.pop23);
+  const r = d3.scaleSqrt().domain(popExtent).range([3, 16]);
+
+  function arrowColor(d) {
+    const fbUp = d.fbPctEnd > d.fbPctStart, jobsUp = d.jobsPcEnd > d.jobsPcStart;
+    if (fbUp && jobsUp) return "#00bebe";
+    if (fbUp && !jobsUp) return "#e08020";
+    if (!fbUp && jobsUp) return "#8b5cf6";
+    return "#aaa";
+  }
+
+  g.append("g").attr("class","grid").attr("transform",`translate(0,${innerH})`).call(d3.axisBottom(x).tickSize(-innerH).tickFormat(""));
+  g.append("g").attr("class","grid").call(d3.axisLeft(y).tickSize(-innerW).tickFormat(""));
+  g.append("g").attr("class","axis").attr("transform",`translate(0,${innerH})`).call(d3.axisBottom(x).ticks(10).tickFormat(d=>d+"%")).selectAll("text").attr("dy","1em");
+  g.append("g").attr("class","axis").call(d3.axisLeft(y).ticks(8));
+
+  g.append("text").attr("class","axis-label").attr("x",innerW/2).attr("y",innerH+40).attr("text-anchor","middle").text("Foreign-Born Share of Population \u2192");
+  g.append("text").attr("class","axis-label").attr("transform","rotate(-90)").attr("x",-innerH/2).attr("y",-42).attr("text-anchor","middle").text("\u2191 Industry Jobs per 1,000 Residents");
+
+  const defs = svg.append("defs");
+  plotData.forEach((d, i) => {
+    const x1=x(d.fbPctStart),y1=y(d.jobsPcStart),x2=x(d.fbPctEnd),y2=y(d.jobsPcEnd);
+    const col=arrowColor(d), ddx=x2-x1, ddy=y2-y1, dist=Math.sqrt(ddx*ddx+ddy*ddy);
+    if(dist<1)return;
+    const mx=(x1+x2)/2,my=(y1+y2)/2,nx=-ddy/dist,ny=ddx/dist;
+    const bulge=Math.min(dist*0.18,20),cx=mx+nx*bulge,cy=my+ny*bulge;
+    const gradId=`g${i}`;
+    const grad=defs.append("linearGradient").attr("id",gradId).attr("x1",x1).attr("y1",y1).attr("x2",x2).attr("y2",y2).attr("gradientUnits","userSpaceOnUse");
+    grad.append("stop").attr("offset","0%").attr("stop-color",col).attr("stop-opacity",0.25);
+    grad.append("stop").attr("offset","100%").attr("stop-color",col).attr("stop-opacity",0.9);
+    g.append("path").datum(d).attr("class","arrow").attr("d",`M${x1},${y1}Q${cx},${cy},${x2},${y2}`).attr("stroke",`url(#${gradId})`).attr("stroke-width",Math.max(1.2,r(d.pop23)*0.25));
+    const angle=Math.atan2(y2-cy,x2-cx),headLen=Math.max(4,r(d.pop23)*0.5);
+    const ha1=angle+Math.PI*0.82,ha2=angle-Math.PI*0.82;
+    g.append("polygon").datum(d).attr("class","arrow-head").attr("points",[[x2,y2],[x2+Math.cos(ha1)*headLen,y2+Math.sin(ha1)*headLen],[x2+Math.cos(ha2)*headLen,y2+Math.sin(ha2)*headLen]].map(p=>p.join(",")).join(" ")).attr("fill",col).attr("opacity",0.85);
+  });
+
+  g.selectAll(".start-dot").data(plotData).join("circle").attr("class","start-dot")
+    .attr("cx",d=>x(d.fbPctStart)).attr("cy",d=>y(d.jobsPcStart))
+    .attr("r",d=>Math.max(2,r(d.pop23)*0.3)).attr("fill","none").attr("stroke",d=>arrowColor(d)).attr("stroke-width",1).attr("opacity",0.5);
+
+  const labelData=plotData.map(d=>({...d,lx:x(d.fbPctEnd),ly:y(d.jobsPcEnd)}));
+  labelData.sort((a,b)=>a.ly-b.ly);
+  for(let i=1;i<labelData.length;i++){for(let j=0;j<i;j++){if(Math.abs(labelData[i].lx-labelData[j].lx)<60&&Math.abs(labelData[i].ly-labelData[j].ly)<13){labelData[i].ly+=13-Math.abs(labelData[i].ly-labelData[j].ly);}}}
+
+  g.selectAll(".city-label").data(labelData).join("text").attr("class","city-label")
+    .attr("x",d=>d.lx+6).attr("y",d=>d.ly+4).attr("fill",d=>arrowColor(d)).text(d=>d.name);
+
+  const tooltip=d3.select("#tooltip");
+  g.selectAll(".hover-target").data(plotData).join("circle")
+    .attr("cx",d=>x(d.fbPctEnd)).attr("cy",d=>y(d.jobsPcEnd))
+    .attr("r",d=>Math.max(8,r(d.pop23))).attr("fill","transparent").attr("cursor","pointer")
+    .on("mouseenter",(event,d)=>{
+      const fbC=d.fbPctEnd-d.fbPctStart,jC=d.jobsPcEnd-d.jobsPcStart;
+      tooltip.style("display","block").html(`<strong>${d.name}</strong><br><span style="color:#888">Pop ${d.pop23.toLocaleString()}</span><br><br><strong>Foreign-born</strong><br>${d.fbPct15}% \u2192 ${d.fbPct23}% <span style="color:${fbC>=0?'#00bebe':'#e08020'}">(${fbC>=0?'+':''}${fbC.toFixed(1)}pp)</span><br><br><strong>Jobs/1k</strong><br>${d.jobsPcStart.toFixed(1)} \u2192 ${d.jobsPcEnd.toFixed(1)} <span style="color:${jC>=0?'#00bebe':'#e08020'}">(${jC>=0?'+':''}${jC.toFixed(1)})</span>`);
+    })
+    .on("mousemove",(event)=>{tooltip.style("left",(event.clientX+16)+"px").style("top",(event.clientY-16)+"px");})
+    .on("mouseleave",()=>tooltip.style("display","none"));
+
+  // Responsive height reporting for iframe embeds
+  function reportHeight() {
+    if (window.parent !== window) {
+      window.parent.postMessage({ "embed-height": document.documentElement.scrollHeight }, "*");
+    }
+  }
+  reportHeight();
+  window.addEventListener("resize", reportHeight);
+})();
+</script>
+</body>
+</html>

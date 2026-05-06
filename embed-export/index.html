@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Embeddable Charts — Open Notation Export</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: #f8f9fa; color: #1a1a1a; padding: 40px 24px; line-height: 1.6;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }
+  .chart-card {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+    padding: 24px; margin-bottom: 24px;
+  }
+  .chart-card h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .chart-card .desc { font-size: 13px; color: #666; margin-bottom: 16px; }
+  .chart-card .meta { font-size: 12px; color: #999; margin-bottom: 12px; }
+  .chart-card .meta span { background: #f0f0f0; padding: 2px 8px; border-radius: 3px; margin-right: 6px; }
+  .embed-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 6px; }
+  .code-block {
+    background: #1e1e2e; color: #cdd6f4; padding: 16px; border-radius: 6px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12.5px;
+    line-height: 1.5; overflow-x: auto; position: relative; white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    color: #cdd6f4; padding: 4px 12px; border-radius: 4px; font-size: 11px;
+    cursor: pointer; font-family: inherit;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.2); }
+  .preview-link {
+    display: inline-block; margin-top: 12px; font-size: 13px;
+    color: #0066cc; text-decoration: none;
+  }
+  .preview-link:hover { text-decoration: underline; }
+  .section-title { font-size: 14px; font-weight: 600; color: #444; margin: 24px 0 12px; padding-top: 16px; border-top: 1px solid #eee; }
+  .note {
+    background: #fff8e6; border: 1px solid #f0e0a0; border-radius: 6px;
+    padding: 16px; margin-bottom: 24px; font-size: 13px; color: #7a6a00;
+  }
+  .note strong { color: #5a4a00; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Embeddable Charts</h1>
+  <div class="subtitle">Open Notation — Gateway Cities Economic Analysis</div>
+
+  <div class="note">
+    <strong>How to embed:</strong> Each chart below has a responsive iframe embed code (DataWrapper-style). Copy the code and paste it into your HTML page. The iframe will automatically resize to fit the chart content. Replace <code>YOUR_HOST_URL</code> with the URL where you host these files.
+  </div>
+
+  <!-- Chart 1: Inequality Large -->
+  <div class="chart-card">
+    <h2>Foreign-Born Share vs. Jobs — Large Cities</h2>
+    <div class="desc">Scatter plot with directional arrows showing change in foreign-born population share and jobs per 1,000 residents (2015 to 2023) for larger Gateway Cities.</div>
+    <div class="meta">
+      <span>D3.js</span>
+      <span>CDN data</span>
+      <span>Self-contained</span>
+    </div>
+    <div class="embed-label">Embed Code</div>
+    <div class="code-block" id="code-1"><button class="copy-btn" onclick="copyCode('code-1')">Copy</button>&lt;div style="min-height:500px"&gt;
+  &lt;iframe src="YOUR_HOST_URL/inequality-large.html"
+    scrolling="no" frameborder="0"
+    style="width:0;min-width:100%;border:none;"
+    height="700" id="inequality-large"&gt;
+  &lt;/iframe&gt;
+&lt;/div&gt;
+&lt;script&gt;
+window.addEventListener("message",function(e){
+  if(e.data&&e.data["datawrapper-height"]){
+    var heights=e.data["datawrapper-height"];
+    for(var k in heights){
+      var f=document.getElementById("inequality-large");
+      if(f)f.style.height=heights[k]+"px";
+    }
+  }
+});
+&lt;/script&gt;</div>
+    <a class="preview-link" href="inequality-large.html" target="_blank">Preview chart &rarr;</a>
+  </div>
+
+  <!-- Chart 2: Inequality Small -->
+  <div class="chart-card">
+    <h2>Foreign-Born Share vs. Jobs — Small Cities</h2>
+    <div class="desc">Same arrow scatter plot for smaller Gateway Cities with a tighter Y-axis scale (0-250 jobs/1k).</div>
+    <div class="meta">
+      <span>D3.js</span>
+      <span>CDN data</span>
+      <span>Self-contained</span>
+    </div>
+    <div class="embed-label">Embed Code</div>
+    <div class="code-block" id="code-2"><button class="copy-btn" onclick="copyCode('code-2')">Copy</button>&lt;div style="min-height:500px"&gt;
+  &lt;iframe src="YOUR_HOST_URL/inequality-small.html"
+    scrolling="no" frameborder="0"
+    style="width:0;min-width:100%;border:none;"
+    height="700" id="inequality-small"&gt;
+  &lt;/iframe&gt;
+&lt;/div&gt;
+&lt;script&gt;
+window.addEventListener("message",function(e){
+  if(e.data&&e.data["datawrapper-height"]){
+    var heights=e.data["datawrapper-height"];
+    for(var k in heights){
+      var f=document.getElementById("inequality-small");
+      if(f)f.style.height=heights[k]+"px";
+    }
+  }
+});
+&lt;/script&gt;</div>
+    <a class="preview-link" href="inequality-small.html" target="_blank">Preview chart &rarr;</a>
+  </div>
+
+  <!-- Chart 3: MA Spikes -->
+  <div class="chart-card">
+    <h2>Foreign-Born Population Spikes — Massachusetts</h2>
+    <div class="desc">Interactive map of Massachusetts census tracts with spike heights showing foreign-born population growth. Includes LEHD industry jobs overlay and year slider (2013-2023).</div>
+    <div class="meta">
+      <span>D3.js + SVG map</span>
+      <span>CDN data + Census ACS API</span>
+      <span>Self-contained</span>
+    </div>
+    <div class="embed-label">Embed Code</div>
+    <div class="code-block" id="code-3"><button class="copy-btn" onclick="copyCode('code-3')">Copy</button>&lt;div style="min-height:600px"&gt;
+  &lt;iframe src="YOUR_HOST_URL/ma-spikes.html"
+    scrolling="no" frameborder="0"
+    style="width:0;min-width:100%;border:none;"
+    height="700" id="ma-spikes"&gt;
+  &lt;/iframe&gt;
+&lt;/div&gt;
+&lt;script&gt;
+window.addEventListener("message",function(e){
+  if(e.data&&e.data["datawrapper-height"]){
+    var heights=e.data["datawrapper-height"];
+    for(var k in heights){
+      var f=document.getElementById("ma-spikes");
+      if(f)f.style.height=heights[k]+"px";
+    }
+  }
+});
+&lt;/script&gt;</div>
+    <a class="preview-link" href="ma-spikes.html" target="_blank">Preview chart &rarr;</a>
+  </div>
+
+  <!-- Chart 4: Jobs by Sector -->
+  <div class="chart-card">
+    <h2>Jobs by Sector — Gateway City Districts</h2>
+    <div class="desc">Stacked bar charts showing LODES 2023 employment by sector across 25 Gateway Cities, with absolute counts, normalized composition view, 2019 comparison, slide embeds, and an interactive tilemap with year tabs.</div>
+    <div class="meta">
+      <span>D3.js + MapLibre GL</span>
+      <span>Co-hosted JSON + GeoJSON</span>
+      <span>Requires data files</span>
+    </div>
+    <div class="embed-label">Embed Code</div>
+    <div class="code-block" id="code-4"><button class="copy-btn" onclick="copyCode('code-4')">Copy</button>&lt;div style="min-height:800px"&gt;
+  &lt;iframe src="YOUR_HOST_URL/jobs-by-sector.html"
+    scrolling="no" frameborder="0"
+    style="width:0;min-width:100%;border:none;"
+    height="2400" id="jobs-by-sector"&gt;
+  &lt;/iframe&gt;
+&lt;/div&gt;
+&lt;script&gt;
+window.addEventListener("message",function(e){
+  if(e.data&&e.data["datawrapper-height"]){
+    var heights=e.data["datawrapper-height"];
+    for(var k in heights){
+      var f=document.getElementById("jobs-by-sector");
+      if(f)f.style.height=heights[k]+"px";
+    }
+  }
+});
+&lt;/script&gt;</div>
+    <div class="section-title">Required co-hosted files</div>
+    <div style="font-size:13px;color:#555;line-height:1.8;">
+      <code>chart_data.json</code>, <code>chart_data_2019.json</code>,
+      <code>block_jobs_2012.json</code>, <code>block_jobs_2019.json</code>, <code>block_jobs_2023.json</code>,
+      <code>gw boundaries &amp; totals/gateway_blocks_filtered.geojson</code>,
+      <code>gw boundaries &amp; totals/immigrant_serving_tracts.geojson</code>
+    </div>
+    <a class="preview-link" href="jobs-by-sector.html" target="_blank">Preview chart &rarr;</a>
+  </div>
+
+  <!-- Chart 5: Jobs Dashboard -->
+  <div class="chart-card">
+    <h2>Immigrant-Serving District Comparisons</h2>
+    <div class="desc">Enhanced dashboard with share-of-downtowns analysis, job composition across immigrant-serving vs. non-immigrant-serving districts, and interactive Leaflet map.</div>
+    <div class="meta">
+      <span>D3.js + Leaflet</span>
+      <span>Co-hosted JSON</span>
+      <span>Requires data files</span>
+    </div>
+    <div class="embed-label">Embed Code</div>
+    <div class="code-block" id="code-5"><button class="copy-btn" onclick="copyCode('code-5')">Copy</button>&lt;div style="min-height:800px"&gt;
+  &lt;iframe src="YOUR_HOST_URL/jobs-dashboard.html"
+    scrolling="no" frameborder="0"
+    style="width:0;min-width:100%;border:none;"
+    height="3000" id="jobs-dashboard"&gt;
+  &lt;/iframe&gt;
+&lt;/div&gt;
+&lt;script&gt;
+window.addEventListener("message",function(e){
+  if(e.data&&e.data["datawrapper-height"]){
+    var heights=e.data["datawrapper-height"];
+    for(var k in heights){
+      var f=document.getElementById("jobs-dashboard");
+      if(f)f.style.height=heights[k]+"px";
+    }
+  }
+});
+&lt;/script&gt;</div>
+    <div class="section-title">Required co-hosted file</div>
+    <div style="font-size:13px;color:#555;line-height:1.8;">
+      <code>districts_blocks.json</code>
+    </div>
+    <a class="preview-link" href="jobs-dashboard.html" target="_blank">Preview chart &rarr;</a>
+  </div>
+
+  <div style="margin-top:40px;padding-top:20px;border-top:1px solid #ddd;font-size:12px;color:#999;">
+    <p><strong>Hosting:</strong> Upload the entire <code>embed-export/</code> folder to any static file host (GitHub Pages, Netlify, S3, etc.). Replace <code>YOUR_HOST_URL</code> in the embed codes with your actual base URL.</p>
+    <p style="margin-top:8px;"><strong>Self-contained charts</strong> (inequality-large, inequality-small, ma-spikes) fetch data from CDN/APIs and need no co-hosted files. <strong>Jobs charts</strong> (jobs-by-sector, jobs-dashboard) require the JSON/GeoJSON data files to be in the same directory.</p>
+    <p style="margin-top:8px;">Embed pattern follows the <a href="https://developer.datawrapper.de/docs/responsive-iframe" style="color:#0066cc;">DataWrapper responsive iframe</a> approach: the chart reports its height via <code>postMessage</code>, and the parent page's listener adjusts the iframe height accordingly.</p>
+  </div>
+</div>
+
+<script>
+function copyCode(id) {
+  const block = document.getElementById(id);
+  // Get text content, excluding the copy button text
+  const code = block.textContent.replace('Copy', '').trim()
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = block.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+</script>
+</body>
+</html>

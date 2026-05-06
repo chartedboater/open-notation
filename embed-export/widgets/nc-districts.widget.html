@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Neighborhood Commercial Districts — Immigrant-Serving Analysis</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root {
+    --brand-primary: #ff8000;
+    --brand-text: #313132;
+    --brand-text-secondary: #717375;
+    --brand-nav: #86888b;
+    --brand-background: #ffffff;
+    --blue: #3182bd;
+    --orange: #e6550d;
+    --red: #de2d26;
+    --green: #31a354;
+    --gray: #666666;
+    --black: #000000;
+    --gray-lite: #cccccc;
+    --white-lite: #f9f9f9;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: #fff;
+    padding: 24px 32px;
+    max-width: 720px;
+    margin: 0 auto;
+    color: var(--brand-text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .chart-container {
+    width: 660px;
+    max-width: 100%;
+    overflow: visible;
+    position: relative;
+  }
+  .chart-container.nc-chart::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    background: #31a354;
+    border-radius: 2px;
+  }
+
+  .chart-header {
+    border-top: 3px solid var(--brand-primary);
+    padding-top: 10px;
+    margin-bottom: 6px;
+  }
+
+  .chart-header h1 {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--brand-text);
+    line-height: 1.3;
+    letter-spacing: -0.2px;
+    margin-bottom: 6px;
+  }
+
+  .chart-header .dek {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--brand-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .chart-header .dek strong {
+    color: var(--brand-text);
+    font-weight: 600;
+  }
+
+  .source {
+    font-size: 11px;
+    color: var(--brand-nav);
+    margin-top: 10px;
+    line-height: 1.5;
+    border-top: 1px solid #e5e5e5;
+    padding-top: 8px;
+  }
+
+  .city-label {
+    font-size: 12.5px;
+    fill: var(--brand-text-secondary);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  .city-label.has-imm-downtown {
+    font-weight: 700;
+    fill: var(--brand-text);
+  }
+  .value-label {
+    font-size: 11px;
+    fill: var(--brand-text-secondary);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  .value-label.inside {
+    fill: #fff;
+    font-weight: 600;
+  }
+  .axis-label {
+    font-size: 11px;
+    fill: var(--brand-nav);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  .grid-line {
+    stroke: #ebebeb;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+
+  .pie-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    padding: 24px 0 16px;
+  }
+  .pie-label-group {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .pie-label-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--brand-text-secondary);
+  }
+  .pie-label-row .pie-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .pie-label-row .pie-count {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-text);
+    line-height: 1;
+  }
+  .pie-center-text {
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--brand-text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .tooltip .tt-city {
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .tooltip .tt-value {
+    color: var(--brand-text-secondary);
+    font-size: 12px;
+  }
+
+  .bar-row { cursor: pointer; }
+  .bar-row:hover .bar-fg-rect { filter: brightness(0.85); }
+  .bar-row:hover .bar-bg-rect { filter: brightness(0.95); }
+  .pie-slice { cursor: pointer; transition: opacity 0.15s ease; }
+  .pie-slice:hover { opacity: 0.8; }
+
+  .sections-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    padding-left: 28px;
+  }
+</style>
+</head>
+<body>
+<div class="sections-wrapper">
+
+<!-- NC district donut -->
+<div class="chart-container nc-chart">
+  <div class="chart-header" style="border-top-color: #31a354;">
+    <h1>42% of neighborhood commercial districts are immigrant-serving</h1>
+    <div class="dek">Of <strong>526</strong> neighborhood commercial micro districts across the 25 Gateway Cities, <strong>221 (42%)</strong> meet the immigrant-serving threshold.</div>
+  </div>
+  <div class="pie-body">
+    <svg id="pie-chart-nc"></svg>
+    <div class="pie-label-group">
+      <div class="pie-label-row">
+        <div class="pie-swatch" style="background: #3182bd;"></div>
+        <span><span class="pie-count">221</span> immigrant-serving</span>
+      </div>
+      <div class="pie-label-row">
+        <div class="pie-swatch" style="background: #e8e6e1;"></div>
+        <span><span class="pie-count">305</span> not immigrant-serving</span>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: U.S. Census Bureau, ACS 2022 5-Year Estimates (B05001, B05002). Threshold: &ge;30% foreign-born at census tract level. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+<!-- NC jobs donut + bar -->
+<div class="chart-container nc-chart">
+  <div class="chart-header" style="border-top-color: #31a354;">
+    <h1>Immigrant-serving neighborhoods hold a slim majority of commercial district jobs</h1>
+    <div class="dek">Jobs in immigrant-serving neighborhood commercial areas as a share of all neighborhood commercial area jobs, 2023. Excluding Boston.</div>
+  </div>
+  <div class="pie-body">
+    <svg id="nc-pie"></svg>
+    <div class="pie-label-group">
+      <div class="pie-label-row">
+        <div class="pie-swatch" style="background: #31a354;"></div>
+        <span><span class="pie-count">57,400</span> jobs in imm-serving</span>
+      </div>
+      <div class="pie-label-row">
+        <div class="pie-swatch" style="background: #f0ece4;"></div>
+        <span><span class="pie-count">51,680</span> jobs in non-imm-serving</span>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: U.S. Census Bureau LODES 8 WAC 2023; ACS 2022 5-Year Estimates. Boston excluded. Neighborhood commercial districts only. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+<div class="chart-container nc-chart">
+  <svg id="nc-bar"></svg>
+</div>
+
+<!-- NC job change slope + share -->
+<div class="chart-container nc-chart">
+  <div class="chart-header" style="border-top-color: #31a354;">
+    <h1>Non-immigrant-serving neighborhoods grew jobs faster since 2019</h1>
+    <div class="dek">Neighborhood commercial job change, 2019–2023, excluding Boston. Non-immigrant-serving areas grew 6.1% vs. 3.1% for immigrant-serving.</div>
+  </div>
+  <svg id="nc-slope"></svg>
+  <div class="source">Source: U.S. Census Bureau LODES 8 WAC, 2019 &amp; 2023. Boston excluded. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+<div class="chart-container nc-chart">
+  <div class="chart-header" style="border-top-color: #31a354;">
+    <h1>Non-immigrant-serving areas captured nearly two-thirds of net job growth</h1>
+    <div class="dek">Share of net neighborhood commercial job growth (2019–2023) by category, excluding Boston.</div>
+  </div>
+  <svg id="nc-share"></svg>
+  <div class="source">Source: U.S. Census Bureau LODES 8 WAC, 2019 &amp; 2023. Boston excluded. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+</div>
+
+<script>
+// ── Shared tooltip ──
+const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+
+function showTooltip(evt, html) {
+  tooltip.html(html).style("opacity", 1);
+  const tx = evt.pageX + 14, ty = evt.pageY - 10;
+  tooltip.style("left", tx + "px").style("top", ty + "px");
+}
+function moveTooltip(evt) {
+  tooltip.style("left", (evt.pageX + 14) + "px").style("top", (evt.pageY - 10) + "px");
+}
+function hideTooltip() { tooltip.style("opacity", 0); }
+
+// ═══════════════════════════════════════
+// CHART 2: Donut — neighborhood commercial
+// ═══════════════════════════════════════
+{
+  const pieSize = 160;
+  const radius = pieSize / 2;
+  const innerRadius = radius * 0.52;
+
+  const pieSvg = d3.select("#pie-chart-nc")
+    .attr("width", pieSize)
+    .attr("height", pieSize)
+    .style("overflow", "visible")
+    .append("g")
+    .attr("transform", `translate(${radius},${radius})`);
+
+  const pieData = [
+    { label: "Immigrant-serving", value: 221 },
+    { label: "Not immigrant-serving", value: 305 }
+  ];
+  const pieColors = ["#3182bd", "#e8e6e1"];
+  const total = 526;
+
+  const pie = d3.pie().value(d => d.value).sort(null);
+  const arcGen = d3.arc().innerRadius(innerRadius).outerRadius(radius);
+  const arcHover = d3.arc().innerRadius(innerRadius).outerRadius(radius + 6);
+
+  pieSvg.selectAll("path")
+    .data(pie(pieData))
+    .join("path")
+    .attr("class", "pie-slice")
+    .attr("d", arcGen)
+    .attr("fill", (d, i) => pieColors[i])
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 2.5)
+    .on("mouseenter", function(evt, d) {
+      d3.select(this).transition().duration(150).attr("d", arcHover);
+      const pct = Math.round(d.data.value / total * 100);
+      showTooltip(evt,
+        `<div class="tt-city">${d.data.label}</div>
+         <div class="tt-value">${d.data.value} of ${total} neighborhood commercial districts (${pct}%)</div>`);
+    })
+    .on("mousemove", moveTooltip)
+    .on("mouseleave", function() {
+      d3.select(this).transition().duration(150).attr("d", arcGen);
+      hideTooltip();
+    });
+
+  pieSvg.append("text")
+    .attr("class", "pie-center-text")
+    .attr("text-anchor", "middle")
+    .attr("dy", "-0.1em")
+    .attr("font-size", "32px")
+    .attr("font-weight", "700")
+    .attr("fill", "#313132")
+    .text("42%");
+
+  pieSvg.append("text")
+    .attr("class", "pie-center-text")
+    .attr("text-anchor", "middle")
+    .attr("dy", "1.2em")
+    .attr("font-size", "11px")
+    .attr("fill", "#86888b")
+    .text("of districts");
+}
+
+// ═══════════════════════════════════════
+// NC-1: Donut — NC jobs share
+// ═══════════════════════════════════════
+{
+  const pieSize = 160, radius = pieSize / 2, innerR = radius * 0.52;
+  const colorImm = "#31a354", colorNon = "#f0ece4";
+  const pieSvg = d3.select("#nc-pie")
+    .attr("width", pieSize).attr("height", pieSize)
+    .style("overflow", "visible")
+    .append("g").attr("transform", `translate(${radius},${radius})`);
+
+  const pieData = [
+    { label: "Immigrant-serving", value: 57400 },
+    { label: "Not immigrant-serving", value: 51680 }
+  ];
+  const total = 109080;
+  const colors = [colorImm, colorNon];
+  const pie = d3.pie().value(d => d.value).sort(null);
+  const arcGen = d3.arc().innerRadius(innerR).outerRadius(radius);
+  const arcHover = d3.arc().innerRadius(innerR).outerRadius(radius + 6);
+
+  pieSvg.selectAll("path").data(pie(pieData)).join("path")
+    .attr("class", "pie-slice").attr("d", arcGen)
+    .attr("fill", (d, i) => colors[i]).attr("stroke", "#fff").attr("stroke-width", 2.5)
+    .on("mouseenter", function(evt, d) {
+      d3.select(this).transition().duration(150).attr("d", arcHover);
+      showTooltip(evt,
+        `<div class="tt-city">${d.data.label}</div>
+         <div class="tt-value">${d.data.value.toLocaleString()} jobs (${(d.data.value/total*100).toFixed(1)}%)</div>`);
+    })
+    .on("mousemove", moveTooltip)
+    .on("mouseleave", function() {
+      d3.select(this).transition().duration(150).attr("d", arcGen); hideTooltip();
+    });
+
+  pieSvg.append("text").attr("class", "pie-center-text")
+    .attr("text-anchor", "middle").attr("dy", "-0.1em")
+    .attr("font-size", "32px").attr("font-weight", "700").attr("fill", "#313132").text("53%");
+  pieSvg.append("text").attr("class", "pie-center-text")
+    .attr("text-anchor", "middle").attr("dy", "1.2em")
+    .attr("font-size", "11px").attr("fill", "#86888b").text("of NC jobs");
+}
+
+// ═══════════════════════════════════════
+// NC-2: Two-bar — NC jobs
+// ═══════════════════════════════════════
+{
+  const colorImm = "#31a354", colorNon = "#f0ece4";
+  const barData = [
+    { label: "Immigrant-serving districts", jobs: 57400, imm: true },
+    { label: "Non-immigrant-serving districts", jobs: 51680, imm: false }
+  ];
+  const total = 109080;
+
+  const margin = { top: 4, right: 110, bottom: 4, left: 260 };
+  const barH = 36, barGap = 14, w = 660;
+  const chartH = barData.length * barH + barGap;
+  const h = chartH + margin.top + margin.bottom;
+
+  const svg = d3.select("#nc-bar")
+    .attr("width", w).attr("height", h)
+    .attr("viewBox", `0 0 ${w} ${h}`).style("overflow", "visible");
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+  const cw = w - margin.left - margin.right;
+  const x = d3.scaleLinear().domain([0, total]).range([0, cw]);
+  const y = d3.scaleBand().domain(barData.map(d => d.label))
+    .range([0, chartH]).paddingInner(barGap / (barH + barGap)).paddingOuter(0);
+
+  const rows = g.selectAll(".nc-row").data(barData).join("g")
+    .attr("class", "bar-row").attr("transform", d => `translate(0,${y(d.label)})`)
+    .on("mouseenter", function(evt, d) {
+      showTooltip(evt,
+        `<div class="tt-city">${d.label}</div>
+         <div class="tt-value">${d.jobs.toLocaleString()} jobs (${(d.jobs/total*100).toFixed(1)}%)</div>`);
+    })
+    .on("mousemove", moveTooltip).on("mouseleave", hideTooltip);
+
+  rows.append("rect").attr("x", -margin.left).attr("width", w)
+    .attr("height", y.bandwidth()).attr("fill", "transparent");
+  rows.append("rect").attr("class", "bar-fg-rect").attr("x", 0)
+    .attr("width", d => x(d.jobs)).attr("height", y.bandwidth())
+    .attr("fill", d => d.imm ? colorImm : colorNon)
+    .attr("stroke", d => d.imm ? "#1a7a34" : "#ccc").attr("stroke-width", 0.5).attr("rx", 1);
+  rows.append("text")
+    .attr("class", d => `city-label${d.imm ? ' has-imm-downtown' : ''}`)
+    .attr("x", -8).attr("y", y.bandwidth() / 2).attr("dy", "0.35em").attr("text-anchor", "end")
+    .text(d => d.label);
+  rows.append("text").attr("class", "value-label")
+    .attr("x", d => x(d.jobs) + 6).attr("y", y.bandwidth() / 2).attr("dy", "0.35em")
+    .attr("font-size", "13px")
+    .text(d => `${d.jobs.toLocaleString()} (${Math.round(d.jobs/total*100)}%)`);
+}
+
+// ═══════════════════════════════════════
+// NC-3: Slope — NC job change 2019-2023
+// ═══════════════════════════════════════
+{
+  const colorImm = "#31a354", colorNon = "#86888b";
+  const slopeData = [
+    { label: "Immigrant-serving", v2019: 55675, v2023: 57400, imm: true },
+    { label: "Non-imm-serving", v2019: 48699, v2023: 51680, imm: false }
+  ];
+
+  const margin = { top: 30, right: 150, bottom: 30, left: 150 };
+  const w = 660, chartH = 240;
+  const h = chartH + margin.top + margin.bottom;
+  const font = "'Knowledge', -apple-system, Helvetica, sans-serif";
+
+  const svg = d3.select("#nc-slope")
+    .attr("width", w).attr("height", h)
+    .attr("viewBox", `0 0 ${w} ${h}`).style("overflow", "visible");
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+  const cw = w - margin.left - margin.right;
+  const xLeft = 0, xRight = cw;
+
+  // Each line in own band, slope = percentage growth amplified
+  const pxPerPct = 14; // pixels per 1% change
+  const immCenterY = 60;
+  const nonCenterY = immCenterY + 100;
+
+  g.append("text").attr("x", xLeft).attr("y", 10)
+    .attr("text-anchor", "middle").attr("font-size", "14px")
+    .attr("font-weight", "700").attr("fill", "#313132").attr("font-family", font).text("2019");
+  g.append("text").attr("x", xRight).attr("y", 10)
+    .attr("text-anchor", "middle").attr("font-size", "14px")
+    .attr("font-weight", "700").attr("fill", "#313132").attr("font-family", font).text("2023");
+
+  g.append("line").attr("x1", xLeft).attr("x2", xLeft).attr("y1", 20).attr("y2", chartH)
+    .attr("stroke", "#e5e5e5").attr("stroke-width", 1);
+  g.append("line").attr("x1", xRight).attr("x2", xRight).attr("y1", 20).attr("y2", chartH)
+    .attr("stroke", "#e5e5e5").attr("stroke-width", 1);
+
+  slopeData.forEach(d => {
+    const color = d.imm ? colorImm : colorNon;
+    const centerY = d.imm ? immCenterY : nonCenterY;
+    const pctChange = (d.v2023 - d.v2019) / d.v2019 * 100;
+    // Growth = line goes UP (lower y), so subtract
+    const yStart = centerY;
+    const yEnd = centerY - pctChange * pxPerPct;
+
+    g.append("line").attr("x1", xLeft).attr("y1", yStart)
+      .attr("x2", xRight).attr("y2", yEnd)
+      .attr("stroke", color).attr("stroke-width", 3.5).attr("stroke-linecap", "round");
+
+    g.append("circle").attr("cx", xLeft).attr("cy", yStart)
+      .attr("r", 6).attr("fill", color).attr("stroke", "#fff").attr("stroke-width", 2);
+    g.append("circle").attr("cx", xRight).attr("cy", yEnd)
+      .attr("r", 6).attr("fill", color).attr("stroke", "#fff").attr("stroke-width", 2);
+
+    g.append("text").attr("x", xLeft - 12).attr("y", yStart - 2)
+      .attr("dy", "0.35em").attr("text-anchor", "end")
+      .attr("font-size", "15px").attr("font-weight", "700").attr("fill", color)
+      .attr("font-family", font).text(d.v2019.toLocaleString());
+    g.append("text").attr("x", xLeft - 12).attr("y", yStart + 16)
+      .attr("dy", "0.35em").attr("text-anchor", "end")
+      .attr("font-size", "11px").attr("fill", "#86888b")
+      .attr("font-family", font).text(d.label);
+
+    const pctStr = pctChange.toFixed(1);
+    g.append("text").attr("x", xRight + 12).attr("y", yEnd - 2)
+      .attr("dy", "0.35em").attr("text-anchor", "start")
+      .attr("font-size", "15px").attr("font-weight", "700").attr("fill", color)
+      .attr("font-family", font).text(d.v2023.toLocaleString());
+    g.append("text").attr("x", xRight + 12).attr("y", yEnd + 16)
+      .attr("dy", "0.35em").attr("text-anchor", "start")
+      .attr("font-size", "12px").attr("font-weight", "600").attr("fill", color)
+      .attr("font-family", font).text("+" + pctStr + "%");
+
+    g.append("rect").attr("x", 0).attr("y", Math.min(yStart, yEnd) - 20)
+      .attr("width", cw).attr("height", Math.abs(yStart - yEnd) + 40)
+      .attr("fill", "transparent").style("cursor", "pointer")
+      .on("mouseenter", function(evt) {
+        const change = d.v2023 - d.v2019;
+        showTooltip(evt,
+          `<div class="tt-city">${d.label}</div>
+           <div class="tt-value">2019: ${d.v2019.toLocaleString()} → 2023: ${d.v2023.toLocaleString()}</div>
+           <div class="tt-value">Change: +${change.toLocaleString()} (+${pctStr}%)</div>`);
+      })
+      .on("mousemove", moveTooltip).on("mouseleave", hideTooltip);
+  });
+}
+
+// ═══════════════════════════════════════
+// NC-4: Proportional bar — share of NC job growth
+// ═══════════════════════════════════════
+{
+  const colorImm = "#31a354", colorNon = "#f0ece4";
+  const shareData = [
+    { label: "Immigrant-serving", value: 1725, pct: 36.7, imm: true },
+    { label: "Non-immigrant-serving", value: 2981, pct: 63.3, imm: false }
+  ];
+  const totalGrowth = 4706;
+
+  const margin = { top: 8, right: 20, bottom: 30, left: 20 };
+  const w = 660, barH = 48;
+  const h = barH + margin.top + margin.bottom + 30;
+
+  const svg = d3.select("#nc-share")
+    .attr("width", w).attr("height", h)
+    .attr("viewBox", `0 0 ${w} ${h}`).style("overflow", "visible");
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+  const cw = w - margin.left - margin.right;
+  const x = d3.scaleLinear().domain([0, 100]).range([0, cw]);
+
+  let cumX = 0;
+  shareData.forEach(d => {
+    const barWidth = x(d.pct);
+    g.append("rect").attr("x", cumX).attr("y", 0)
+      .attr("width", barWidth).attr("height", barH)
+      .attr("fill", d.imm ? colorImm : colorNon)
+      .attr("stroke", d.imm ? "#1a7a34" : "#ccc").attr("stroke-width", 0.5)
+      .style("cursor", "pointer")
+      .on("mouseenter", function(evt) {
+        showTooltip(evt,
+          `<div class="tt-city">${d.label}</div>
+           <div class="tt-value">+${d.value.toLocaleString()} jobs (${d.pct}% of net growth)</div>`);
+      })
+      .on("mousemove", moveTooltip).on("mouseleave", hideTooltip);
+
+    if (barWidth > 50) {
+      g.append("text").attr("x", cumX + barWidth / 2).attr("y", barH / 2 - 7)
+        .attr("text-anchor", "middle").attr("font-size", "18px").attr("font-weight", "700")
+        .attr("fill", d.imm ? "#fff" : "#313132")
+        .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+        .text(Math.round(d.pct) + "%");
+      g.append("text").attr("x", cumX + barWidth / 2).attr("y", barH / 2 + 11)
+        .attr("text-anchor", "middle").attr("font-size", "11px")
+        .attr("fill", d.imm ? "rgba(255,255,255,0.8)" : "#717375")
+        .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+        .text("+" + d.value.toLocaleString() + " jobs");
+    }
+    cumX += barWidth;
+  });
+
+  const legendY = barH + 18;
+  g.append("rect").attr("x", 0).attr("y", legendY).attr("width", 12).attr("height", 12)
+    .attr("fill", colorImm).attr("rx", 1);
+  g.append("text").attr("x", 16).attr("y", legendY + 6).attr("dy", "0.35em")
+    .attr("font-size", "11px").attr("fill", "#313132")
+    .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+    .text("Immigrant-serving districts");
+  g.append("rect").attr("x", 220).attr("y", legendY).attr("width", 12).attr("height", 12)
+    .attr("fill", colorNon).attr("stroke", "#ccc").attr("stroke-width", 0.5).attr("rx", 1);
+  g.append("text").attr("x", 236).attr("y", legendY + 6).attr("dy", "0.35em")
+    .attr("font-size", "11px").attr("fill", "#313132")
+    .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+    .text("Non-immigrant-serving districts");
+  g.append("text").attr("x", cw).attr("y", legendY + 6).attr("dy", "0.35em")
+    .attr("text-anchor", "end").attr("font-size", "11px").attr("fill", "#86888b")
+    .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+    .text("Total: +" + totalGrowth.toLocaleString() + " jobs");
+}
+
+// ── Height reporting ──
+function reportHeight() {
+  if (window.parent !== window) {
+    window.parent.postMessage({"embed-height": document.documentElement.scrollHeight}, "*");
+  }
+}
+window.addEventListener("load", reportHeight);
+window.addEventListener("resize", reportHeight);
+</script>
+</body>
+</html>

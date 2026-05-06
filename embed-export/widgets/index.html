@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Embeddable Chart Widgets — Open Notation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: #f5f5f7; color: #1d1d1f; line-height: 1.6;
+  }
+  .hero {
+    background: #1d1d1f; color: #f5f5f7; padding: 48px 24px 40px; text-align: center;
+  }
+  .hero h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; }
+  .hero p { font-size: 15px; color: #a1a1a6; max-width: 600px; margin: 8px auto 0; }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+
+  .card {
+    background: #fff; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 28px;
+  }
+  .card-body { padding: 24px; }
+  .card h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .card .desc { font-size: 13px; color: #86868b; margin-bottom: 12px; line-height: 1.5; }
+  .card .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tag {
+    font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 12px;
+    background: #f0f0f0; color: #555;
+  }
+  .tag.green { background: #e8f5e9; color: #2e7d32; }
+  .tag.blue { background: #e3f2fd; color: #1565c0; }
+  .tag.orange { background: #fff3e0; color: #e65100; }
+
+  .preview-frame {
+    width: 100%; border: 1px solid #e5e5e5; border-radius: 8px;
+    background: #fafafa; overflow: hidden; margin-bottom: 16px;
+  }
+  .preview-frame iframe {
+    width: 100%; border: none; display: block;
+  }
+
+  .embed-section { margin-top: 12px; }
+  .embed-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #86868b; margin-bottom: 6px;
+  }
+  .code-wrap { position: relative; }
+  .code-block {
+    background: #1d1d1f; color: #e5e5e7; padding: 14px 16px; border-radius: 8px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12px;
+    line-height: 1.6; overflow-x: auto; white-space: pre; tab-size: 2;
+  }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    color: #a1a1a6; padding: 4px 12px; border-radius: 6px; font-size: 11px;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.18); color: #e5e5e7; }
+
+  .how-to {
+    background: #fff; border-radius: 12px; padding: 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 28px;
+  }
+  .how-to h2 { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+  .how-to ol { padding-left: 20px; }
+  .how-to li { margin-bottom: 8px; font-size: 14px; color: #424245; }
+  .how-to code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+
+  .footer { text-align: center; padding: 20px; font-size: 12px; color: #86868b; }
+  .footer a { color: #0066cc; text-decoration: none; }
+
+  .btn-preview {
+    display: inline-block; padding: 8px 20px; background: #0066cc; color: #fff;
+    font-size: 13px; font-weight: 500; text-decoration: none; border-radius: 8px;
+    transition: background 0.15s;
+  }
+  .btn-preview:hover { background: #0055aa; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>Embeddable Chart Widgets</h1>
+  <p>Self-contained interactive charts from the Open Notation project. Each is a single HTML file — drop it on any server and embed with one line of code.</p>
+</div>
+
+<div class="container">
+  <div class="how-to">
+    <h2>How to embed</h2>
+    <ol>
+      <li>Host the <code>.widget.html</code> file on any web server (GitHub Pages, Netlify, S3, your own server)</li>
+      <li>Copy the embed code below and paste it into your page's HTML</li>
+      <li>Replace <code>YOUR_URL</code> with the actual URL of the hosted file</li>
+    </ol>
+    <p style="margin-top:12px;font-size:13px;color:#86868b;">Each widget is fully self-contained — no JSON files, no co-hosted dependencies. The only external resource is D3.js loaded from CDN. The iframe auto-resizes to fit the chart content.</p>
+  </div>
+
+  <!-- Widget 1: Inequality Large -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Foreign-Born Share vs. Jobs — Large Cities</h2>
+      <div class="desc">Arrow scatter plot showing change in foreign-born population share and jobs per 1,000 residents (2015-2023) for MA cities with population over 40,000.</div>
+      <div class="meta">
+        <span class="tag green">Self-contained</span>
+        <span class="tag">14 KB</span>
+        <span class="tag blue">D3.js</span>
+        <span class="tag">38 cities</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="inequality-large.widget.html" height="740" id="frame-ineq-large"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/inequality-large.widget.html"
+  style="width:100%;border:none;" height="740"&gt;&lt;/iframe&gt;
+&lt;script&gt;
+window.addEventListener("message", function(e) {
+  if (e.data &amp;&amp; e.data["embed-height"]) {
+    document.querySelector('iframe[src*="inequality-large"]')
+      .style.height = e.data["embed-height"] + "px";
+  }
+});
+&lt;/script&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="inequality-large.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Widget 2: Inequality Small -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Foreign-Born Share vs. Jobs — Small Cities</h2>
+      <div class="desc">Same arrow scatter for smaller MA cities. Tighter Y-axis scale (0-250 jobs/1k). Labels only highlighted cities.</div>
+      <div class="meta">
+        <span class="tag green">Self-contained</span>
+        <span class="tag">38 KB</span>
+        <span class="tag blue">D3.js</span>
+        <span class="tag">130 cities</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="inequality-small.widget.html" height="740" id="frame-ineq-small"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/inequality-small.widget.html"
+  style="width:100%;border:none;" height="740"&gt;&lt;/iframe&gt;
+&lt;script&gt;
+window.addEventListener("message", function(e) {
+  if (e.data &amp;&amp; e.data["embed-height"]) {
+    document.querySelector('iframe[src*="inequality-small"]')
+      .style.height = e.data["embed-height"] + "px";
+  }
+});
+&lt;/script&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="inequality-small.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Widget 3: MA Spikes -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Foreign-Born Population Spikes — Massachusetts</h2>
+      <div class="desc">Interactive spike map of all MA census tracts. Spike height = foreign-born population growth since baseline. Year slider, LEHD industry overlay, community highlighting.</div>
+      <div class="meta">
+        <span class="tag orange">Needs network</span>
+        <span class="tag">25 KB</span>
+        <span class="tag blue">D3.js + Census API</span>
+        <span class="tag">1,500+ tracts</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="ma-spikes.widget.html" height="700" id="frame-spikes"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/ma-spikes.widget.html"
+  style="width:100%;border:none;" height="700"&gt;&lt;/iframe&gt;
+&lt;script&gt;
+window.addEventListener("message", function(e) {
+  if (e.data &amp;&amp; e.data["embed-height"]) {
+    document.querySelector('iframe[src*="ma-spikes"]')
+      .style.height = e.data["embed-height"] + "px";
+  }
+});
+&lt;/script&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="ma-spikes.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Widget 4: Jobs by Sector -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Jobs by Sector — Gateway City Districts</h2>
+      <div class="desc">Stacked bar charts: LODES 2023 and 2019 employment by sector across 25 Gateway Cities, both absolute and normalized to 100%. Interactive tooltips show city, sector, and job count.</div>
+      <div class="meta">
+        <span class="tag green">Self-contained</span>
+        <span class="tag">67 KB</span>
+        <span class="tag blue">D3.js</span>
+        <span class="tag">20 sectors x 25 cities</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="jobs-by-sector.widget.html" height="2400" id="frame-sector"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/jobs-by-sector.widget.html"
+  style="width:100%;border:none;" height="2400"&gt;&lt;/iframe&gt;
+&lt;script&gt;
+window.addEventListener("message", function(e) {
+  if (e.data &amp;&amp; e.data["embed-height"]) {
+    document.querySelector('iframe[src*="jobs-by-sector"]')
+      .style.height = e.data["embed-height"] + "px";
+  }
+});
+&lt;/script&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="jobs-by-sector.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Widget 5: Jobs Dashboard -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Immigrant-Serving District Analysis</h2>
+      <div class="desc">Complete chart dashboard: share of downtowns, share of jobs, job growth trends, neighborhood commercial analysis, and per-city breakdown. All pie/donut, bar, and slope charts — no map.</div>
+      <div class="meta">
+        <span class="tag green">Self-contained</span>
+        <span class="tag">66 KB</span>
+        <span class="tag blue">D3.js</span>
+        <span class="tag">15+ charts</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="jobs-dashboard.widget.html" height="4000" id="frame-dash"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/jobs-dashboard.widget.html"
+  style="width:100%;border:none;" height="4000"&gt;&lt;/iframe&gt;
+&lt;script&gt;
+window.addEventListener("message", function(e) {
+  if (e.data &amp;&amp; e.data["embed-height"]) {
+    document.querySelector('iframe[src*="jobs-dashboard"]')
+      .style.height = e.data["embed-height"] + "px";
+  }
+});
+&lt;/script&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="jobs-dashboard.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+</div>
+
+  <div style="margin:40px 0 28px;padding-top:28px;border-top:2px solid #1d1d1f;">
+    <h2 style="font-size:22px;font-weight:700;margin-bottom:4px;">Dashboard Charts — Individual Widgets</h2>
+    <p style="font-size:14px;color:#86868b;">Each chart section from the Immigrant-Serving District Analysis dashboard, broken out as its own standalone embed.</p>
+  </div>
+
+  <!-- Widget: Downtown Share -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Share of Downtowns That Are Immigrant-Serving</h2>
+      <div class="desc">Donut charts showing 14 of 25 Gateway City downtowns (56%) are immigrant-serving. Includes excl-Boston view (13 of 24, 54%).</div>
+      <div class="meta">
+        <span class="tag green">Self-contained</span>
+        <span class="tag">10 KB</span>
+        <span class="tag blue">D3.js</span>
+        <span class="tag">2 donuts</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="downtown-share.widget.html" height="500" id="frame-dt-share"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/downtown-share.widget.html"
+  style="width:100%;border:none;" height="500"&gt;&lt;/iframe&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="downtown-share.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Widget: Downtown Jobs -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Downtown Jobs in Immigrant-Serving Areas</h2>
+      <div class="desc">91% of downtown jobs (420K of 462K) are in immigrant-serving areas. Includes excl-Boston view (71%, 104K of 147K) with horizontal bar comparisons.</div>
+      <div class="meta">
+        <span class="tag green">Self-contained</span>
+        <span class="tag">17 KB</span>
+        <span class="tag blue">D3.js</span>
+        <span class="tag">2 donuts + 2 bars</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="downtown-jobs.widget.html" height="900" id="frame-dt-jobs"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/downtown-jobs.widget.html"
+  style="width:100%;border:none;" height="900"&gt;&lt;/iframe&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="downtown-jobs.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Widget: Downtown Job Change -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Downtown Job Change 2019-2023</h2>
+      <div class="desc">Waterfall chart showing net decline of 5,271 jobs. Slope chart: imm-serving fell 4.3% vs 1.3%. Proportional bar: 89% of job loss in imm-serving areas.</div>
+      <div class="meta">
+        <span class="tag green">Self-contained</span>
+        <span class="tag">19 KB</span>
+        <span class="tag blue">D3.js</span>
+        <span class="tag">Waterfall + slope + bar</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="downtown-job-change.widget.html" height="1100" id="frame-dt-change"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/downtown-job-change.widget.html"
+  style="width:100%;border:none;" height="1100"&gt;&lt;/iframe&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="downtown-job-change.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Widget: NC Districts -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Neighborhood Commercial Districts — Full Analysis</h2>
+      <div class="desc">Complete NC analysis: 42% of districts are imm-serving. 53% of NC jobs (57K) are in imm-serving areas. Non-imm areas grew faster (+6.1% vs +3.1%) and captured 63% of net job growth.</div>
+      <div class="meta">
+        <span class="tag green">Self-contained</span>
+        <span class="tag">23 KB</span>
+        <span class="tag blue">D3.js</span>
+        <span class="tag">5 charts</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="nc-districts.widget.html" height="1400" id="frame-nc"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/nc-districts.widget.html"
+  style="width:100%;border:none;" height="1400"&gt;&lt;/iframe&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="nc-districts.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Widget: City Breakdown -->
+  <div class="card">
+    <div class="card-body">
+      <h2>Immigrant-Serving Districts by City</h2>
+      <div class="desc">25-city horizontal bar chart showing share of micro districts classified as immigrant-serving. 4 cities at 100%, 10 cities at 0%. Circle markers for imm-serving downtowns.</div>
+      <div class="meta">
+        <span class="tag green">Self-contained</span>
+        <span class="tag">12 KB</span>
+        <span class="tag blue">D3.js</span>
+        <span class="tag">25 cities</span>
+      </div>
+      <div class="preview-frame">
+        <iframe src="city-breakdown.widget.html" height="750" id="frame-cities"></iframe>
+      </div>
+      <div class="embed-section">
+        <div class="embed-label">Embed code</div>
+        <div class="code-wrap">
+          <button class="copy-btn" onclick="copyEmbed(this)">Copy</button>
+          <div class="code-block">&lt;iframe src="YOUR_URL/city-breakdown.widget.html"
+  style="width:100%;border:none;" height="750"&gt;&lt;/iframe&gt;</div>
+        </div>
+      </div>
+      <a class="btn-preview" href="city-breakdown.widget.html" target="_blank" style="margin-top:12px;">Open standalone &rarr;</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>Open Notation &middot; Gateway Cities Economic Analysis</p>
+  <p style="margin-top:4px;">Charts use <a href="https://d3js.org" target="_blank">D3.js v7</a>. Embed pattern follows <a href="https://developer.datawrapper.de/docs/responsive-iframe" target="_blank">DataWrapper responsive iframe</a>.</p>
+</div>
+
+<script>
+// Auto-resize all preview iframes
+window.addEventListener("message", function(e) {
+  if (e.data && e.data["embed-height"]) {
+    var iframes = document.querySelectorAll(".preview-frame iframe");
+    // Find the iframe that sent this message
+    for (var i = 0; i < iframes.length; i++) {
+      try {
+        if (iframes[i].contentWindow === e.source) {
+          iframes[i].style.height = e.data["embed-height"] + "px";
+        }
+      } catch(err) {}
+    }
+  }
+});
+
+function copyEmbed(btn) {
+  var code = btn.parentElement.querySelector(".code-block").textContent;
+  code = code.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  navigator.clipboard.writeText(code).then(function() {
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

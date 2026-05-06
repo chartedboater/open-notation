@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Downtown Job Change 2019-2023</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root {
+    /* @reuters-graphics/style-color: brand */
+    --brand-primary: #ff8000;
+    --brand-text: #313132;
+    --brand-text-secondary: #717375;
+    --brand-nav: #86888b;
+    --brand-background: #ffffff;
+    /* @reuters-graphics/style-color: categorical/base */
+    --blue: #3182bd;
+    --orange: #e6550d;
+    --red: #de2d26;
+    --green: #31a354;
+    --gray: #666666;
+    --black: #000000;
+    /* @reuters-graphics/style-color: categorical/base-lite */
+    --gray-lite: #cccccc;
+    --white-lite: #f9f9f9;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: #fff;
+    color: var(--brand-text);
+    padding: 24px 32px;
+    max-width: 720px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .chart-container {
+    width: 660px;
+    max-width: 100%;
+    overflow: visible;
+    position: relative;
+    margin-bottom: 48px;
+  }
+
+  /* Reuters orange top rule */
+  .chart-header {
+    border-top: 3px solid var(--brand-primary);
+    padding-top: 10px;
+    margin-bottom: 6px;
+  }
+
+  .chart-header h1 {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--brand-text);
+    line-height: 1.3;
+    letter-spacing: -0.2px;
+    margin-bottom: 6px;
+  }
+
+  .chart-header .dek {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--brand-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .chart-header .dek strong {
+    color: var(--brand-text);
+    font-weight: 600;
+  }
+
+  .source {
+    font-size: 11px;
+    color: var(--brand-nav);
+    margin-top: 10px;
+    line-height: 1.5;
+    border-top: 1px solid #e5e5e5;
+    padding-top: 8px;
+  }
+
+  /* SVG text styles */
+  .city-label {
+    font-size: 12.5px;
+    fill: var(--brand-text-secondary);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  .city-label.has-imm-downtown {
+    font-weight: 700;
+    fill: var(--brand-text);
+  }
+  .value-label {
+    font-size: 11px;
+    fill: var(--brand-text-secondary);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  .value-label.inside {
+    fill: #fff;
+    font-weight: 600;
+  }
+  .axis-label {
+    font-size: 11px;
+    fill: var(--brand-nav);
+    font-family: 'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  .grid-line {
+    stroke: #ebebeb;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--brand-text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .tooltip .tt-city {
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .tooltip .tt-value {
+    color: var(--brand-text-secondary);
+    font-size: 12px;
+  }
+  /* Hover states */
+  .bar-row { cursor: pointer; }
+  .bar-row:hover .bar-fg-rect { filter: brightness(0.85); }
+  .bar-row:hover .bar-bg-rect { filter: brightness(0.95); }
+</style>
+</head>
+<body>
+
+<!-- CHART 3e-1: Waterfall chart -->
+<div class="chart-container">
+  <div class="chart-header">
+    <h1>Downtown jobs declined across Gateway Cities from 2019 to 2023</h1>
+    <div class="dek">Net change in downtown jobs, 2019–2023, excluding Boston. Immigrant-serving downtowns accounted for <strong>89%</strong> of the total decline of 5,271 jobs.</div>
+  </div>
+  <svg id="waterfall-chart"></svg>
+  <div class="source">Source: U.S. Census Bureau LODES 8 WAC, 2019 &amp; 2023. Boston excluded. Downtown districts only. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+<!-- CHART 3e-2: Slope chart -->
+<div class="chart-container">
+  <div class="chart-header">
+    <h1>Immigrant-serving downtowns saw a steeper drop in employment</h1>
+    <div class="dek">Total downtown jobs in 2019 vs. 2023, excluding Boston. Immigrant-serving downtowns fell 4.3% while non-immigrant-serving fell 1.3%.</div>
+  </div>
+  <svg id="slope-chart"></svg>
+  <div class="source">Source: U.S. Census Bureau LODES 8 WAC, 2019 &amp; 2023. Boston excluded. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+<!-- CHART 3e-3: Proportional bar -->
+<div class="chart-container">
+  <div class="chart-header">
+    <h1>Immigrant-serving downtowns drove nearly nine-tenths of the job loss</h1>
+    <div class="dek">Share of net downtown job decline (2019–2023) attributable to each category, excluding Boston.</div>
+  </div>
+  <svg id="share-bar-chart"></svg>
+  <div class="source">Source: U.S. Census Bureau LODES 8 WAC, 2019 &amp; 2023. Boston excluded. &nbsp;REUTERS GRAPHICS</div>
+</div>
+
+<script>
+// ── Shared tooltip ──
+const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+
+function showTooltip(evt, html) {
+  tooltip.html(html).style("opacity", 1);
+  const tx = evt.pageX + 14, ty = evt.pageY - 10;
+  tooltip.style("left", tx + "px").style("top", ty + "px");
+}
+function moveTooltip(evt) {
+  tooltip.style("left", (evt.pageX + 14) + "px").style("top", (evt.pageY - 10) + "px");
+}
+function hideTooltip() { tooltip.style("opacity", 0); }
+
+// ═══════════════════════════════════════
+// CHART 3e-1: Waterfall — net job change
+// ═══════════════════════════════════════
+{
+  const wfData = [
+    { label: "2019 Total", value: 152404, type: "total" },
+    { label: "Imm-serving", value: -4711, type: "decline" },
+    { label: "Non-imm-serving", value: -560, type: "decline" },
+    { label: "2023 Total", value: 147133, type: "total" }
+  ];
+
+  const margin = { top: 12, right: 20, bottom: 40, left: 60 };
+  const w = 660, barW = 90;
+  const chartH = 280;
+  const h = chartH + margin.top + margin.bottom;
+
+  const svg = d3.select("#waterfall-chart")
+    .attr("width", w).attr("height", h)
+    .attr("viewBox", `0 0 ${w} ${h}`)
+    .style("overflow", "visible");
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const cw = w - margin.left - margin.right;
+
+  const x = d3.scaleBand()
+    .domain(wfData.map(d => d.label))
+    .range([0, cw])
+    .padding(0.3);
+
+  const y = d3.scaleLinear()
+    .domain([130000, 160000])
+    .range([chartH, 0]);
+
+  // Grid lines
+  [135000, 140000, 145000, 150000, 155000].forEach(t => {
+    g.append("line").attr("class", "grid-line")
+      .attr("x1", 0).attr("x2", cw)
+      .attr("y1", y(t)).attr("y2", y(t));
+    g.append("text").attr("class", "axis-label")
+      .attr("x", -8).attr("y", y(t))
+      .attr("dy", "0.35em").attr("text-anchor", "end")
+      .text((t / 1000) + "K");
+  });
+
+  // Compute running totals for waterfall positioning
+  let running = 0;
+  const bars = wfData.map(d => {
+    let y0, y1;
+    if (d.type === "total") {
+      y0 = 0; y1 = d.value;
+      running = d.value;
+    } else {
+      y0 = running;
+      y1 = running + d.value;
+      running = y1;
+    }
+    return { ...d, y0, y1 };
+  });
+
+  // Connector lines between bars
+  for (let i = 0; i < bars.length - 1; i++) {
+    if (bars[i].type !== "total" || i === 0) {
+      const fromVal = bars[i].type === "total" ? bars[i].value : bars[i].y1;
+      g.append("line")
+        .attr("x1", x(bars[i].label) + x.bandwidth())
+        .attr("x2", x(bars[i + 1].label))
+        .attr("y1", y(fromVal))
+        .attr("y2", y(fromVal))
+        .attr("stroke", "#aaa")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "3,2");
+    }
+  }
+
+  // Bars
+  const barGroups = g.selectAll(".wf-bar")
+    .data(bars)
+    .join("g")
+    .attr("class", "bar-row");
+
+  barGroups.append("rect")
+    .attr("x", d => x(d.label))
+    .attr("width", x.bandwidth())
+    .attr("y", d => {
+      if (d.type === "total") return y(d.value);
+      return y(Math.max(d.y0, d.y1));
+    })
+    .attr("height", d => {
+      if (d.type === "total") return chartH - y(d.value);
+      return Math.abs(y(d.y0) - y(d.y1));
+    })
+    .attr("fill", d => {
+      if (d.type === "total") return "#86888b";
+      return d.label.startsWith("Imm") ? "#3182bd" : "#e8e6e1";
+    })
+    .attr("stroke", d => {
+      if (d.type === "total") return "#717375";
+      return d.label.startsWith("Imm") ? "#1a5a94" : "#bbb";
+    })
+    .attr("stroke-width", 0.5)
+    .on("mouseenter", function(evt, d) {
+      const val = d.type === "total" ? d.value.toLocaleString() + " jobs" : d.value.toLocaleString() + " jobs";
+      showTooltip(evt,
+        `<div class="tt-city">${d.label}</div>
+         <div class="tt-value">${val}</div>`);
+    })
+    .on("mousemove", moveTooltip)
+    .on("mouseleave", hideTooltip);
+
+  // Value labels on bars
+  barGroups.append("text")
+    .attr("x", d => x(d.label) + x.bandwidth() / 2)
+    .attr("y", d => {
+      if (d.type === "total") return y(d.value) - 6;
+      return y(Math.max(d.y0, d.y1)) - 6;
+    })
+    .attr("text-anchor", "middle")
+    .attr("font-size", "12px")
+    .attr("font-weight", "600")
+    .attr("fill", "#313132")
+    .attr("font-family", "'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif")
+    .text(d => {
+      if (d.type === "total") return d.value.toLocaleString();
+      return d.value.toLocaleString();
+    });
+
+  // X-axis labels
+  g.selectAll(".wf-x-label")
+    .data(wfData)
+    .join("text")
+    .attr("x", d => x(d.label) + x.bandwidth() / 2)
+    .attr("y", chartH + 18)
+    .attr("text-anchor", "middle")
+    .attr("font-size", "11px")
+    .attr("fill", "#313132")
+    .attr("font-weight", d => d.type === "total" ? "600" : "400")
+    .attr("font-family", "'Knowledge', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif")
+    .text(d => d.label);
+}
+
+// ═══════════════════════════════════════
+// CHART 3e-2: Slope chart — 2019 vs 2023
+// ═══════════════════════════════════════
+{
+  const slopeData = [
+    { label: "Immigrant-serving", v2019: 109692, v2023: 104981, imm: true },
+    { label: "Non-imm-serving", v2019: 42712, v2023: 42152, imm: false }
+  ];
+
+  const margin = { top: 30, right: 150, bottom: 30, left: 150 };
+  const w = 660;
+  const chartH = 240;
+  const h = chartH + margin.top + margin.bottom;
+  const font = "'Knowledge', -apple-system, Helvetica, sans-serif";
+
+  const svg = d3.select("#slope-chart")
+    .attr("width", w).attr("height", h)
+    .attr("viewBox", `0 0 ${w} ${h}`)
+    .style("overflow", "visible");
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const cw = w - margin.left - margin.right;
+  const xLeft = 0;
+  const xRight = cw;
+
+  // Each line gets its own vertical band — positioned so 109K is above 42K
+  // but the DROP within each line is scaled to percentage change, amplified
+  const bandH = 80; // vertical space each line can use for its slope
+  const gap = 40;
+  const immCenterY = 60;  // immigrant-serving line lives here (higher = top)
+  const nonCenterY = immCenterY + bandH + gap; // non-imm below
+
+  // Scale factor: 1% decline = this many pixels of drop
+  const pxPerPct = 18;
+
+  function getYs(d, centerY) {
+    const pctDrop = Math.abs((d.v2023 - d.v2019) / d.v2019 * 100);
+    const totalDrop = pctDrop * pxPerPct;
+    return { yStart: centerY, yEnd: centerY + totalDrop };
+  }
+
+  // Dummy yScale just for compatibility — not used for positioning
+  const yScale = v => v;
+
+  // Year headers
+  g.append("text").attr("x", xLeft).attr("y", 10)
+    .attr("text-anchor", "middle").attr("font-size", "14px")
+    .attr("font-weight", "700").attr("fill", "#313132").attr("font-family", font)
+    .text("2019");
+  g.append("text").attr("x", xRight).attr("y", 10)
+    .attr("text-anchor", "middle").attr("font-size", "14px")
+    .attr("font-weight", "700").attr("fill", "#313132").attr("font-family", font)
+    .text("2023");
+
+  // Thin vertical rules
+  g.append("line").attr("x1", xLeft).attr("x2", xLeft)
+    .attr("y1", 20).attr("y2", chartH)
+    .attr("stroke", "#e5e5e5").attr("stroke-width", 1);
+  g.append("line").attr("x1", xRight).attr("x2", xRight)
+    .attr("y1", 20).attr("y2", chartH)
+    .attr("stroke", "#e5e5e5").attr("stroke-width", 1);
+
+  slopeData.forEach(d => {
+    const color = d.imm ? "#3182bd" : "#86888b";
+    const centerY = d.imm ? immCenterY : nonCenterY;
+    const { yStart, yEnd } = getYs(d, centerY);
+
+    // Line
+    g.append("line")
+      .attr("x1", xLeft).attr("y1", yStart)
+      .attr("x2", xRight).attr("y2", yEnd)
+      .attr("stroke", color)
+      .attr("stroke-width", 3.5)
+      .attr("stroke-linecap", "round");
+
+    // Dots
+    g.append("circle").attr("cx", xLeft).attr("cy", yStart)
+      .attr("r", 6).attr("fill", color).attr("stroke", "#fff").attr("stroke-width", 2);
+    g.append("circle").attr("cx", xRight).attr("cy", yEnd)
+      .attr("r", 6).attr("fill", color).attr("stroke", "#fff").attr("stroke-width", 2);
+
+    // Left: job count + label
+    g.append("text")
+      .attr("x", xLeft - 12).attr("y", yStart - 2)
+      .attr("dy", "0.35em").attr("text-anchor", "end")
+      .attr("font-size", "15px").attr("font-weight", "700").attr("fill", color)
+      .attr("font-family", font)
+      .text(d.v2019.toLocaleString());
+    g.append("text")
+      .attr("x", xLeft - 12).attr("y", yStart + 16)
+      .attr("dy", "0.35em").attr("text-anchor", "end")
+      .attr("font-size", "11px").attr("fill", "#86888b")
+      .attr("font-family", font)
+      .text(d.label);
+
+    // Right: job count + percentage change
+    const pctStr = ((d.v2023 - d.v2019) / d.v2019 * 100).toFixed(1);
+    g.append("text")
+      .attr("x", xRight + 12).attr("y", yEnd - 2)
+      .attr("dy", "0.35em").attr("text-anchor", "start")
+      .attr("font-size", "15px").attr("font-weight", "700").attr("fill", color)
+      .attr("font-family", font)
+      .text(d.v2023.toLocaleString());
+    g.append("text")
+      .attr("x", xRight + 12).attr("y", yEnd + 16)
+      .attr("dy", "0.35em").attr("text-anchor", "start")
+      .attr("font-size", "12px").attr("font-weight", "600").attr("fill", color)
+      .attr("font-family", font)
+      .text(pctStr + "%");
+
+    // Hover
+    g.append("rect")
+      .attr("x", 0).attr("y", Math.min(yStart, yEnd) - 20)
+      .attr("width", cw).attr("height", Math.abs(yStart - yEnd) + 40)
+      .attr("fill", "transparent").style("cursor", "pointer")
+      .on("mouseenter", function(evt) {
+        const change = d.v2023 - d.v2019;
+        showTooltip(evt,
+          `<div class="tt-city">${d.label}</div>
+           <div class="tt-value">2019: ${d.v2019.toLocaleString()} &rarr; 2023: ${d.v2023.toLocaleString()}</div>
+           <div class="tt-value">Change: ${change.toLocaleString()} (${pctStr}%)</div>`);
+      })
+      .on("mousemove", moveTooltip)
+      .on("mouseleave", hideTooltip);
+  });
+}
+
+// ═══════════════════════════════════════
+// CHART 3e-3: Proportional bar — share of net decline
+// ═══════════════════════════════════════
+{
+  const shareData = [
+    { label: "Immigrant-serving downtowns", value: 4711, pct: 89.4, imm: true },
+    { label: "Non-immigrant-serving downtowns", value: 560, pct: 10.6, imm: false }
+  ];
+  const totalLoss = 5271;
+
+  const margin = { top: 8, right: 20, bottom: 30, left: 20 };
+  const w = 660;
+  const barH = 48;
+  const h = barH + margin.top + margin.bottom + 30;
+
+  const svg = d3.select("#share-bar-chart")
+    .attr("width", w).attr("height", h)
+    .attr("viewBox", `0 0 ${w} ${h}`)
+    .style("overflow", "visible");
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const cw = w - margin.left - margin.right;
+  const x = d3.scaleLinear().domain([0, 100]).range([0, cw]);
+
+  // Single stacked bar
+  let cumX = 0;
+  shareData.forEach(d => {
+    const barWidth = x(d.pct);
+
+    g.append("rect")
+      .attr("x", cumX)
+      .attr("y", 0)
+      .attr("width", barWidth)
+      .attr("height", barH)
+      .attr("fill", d.imm ? "#3182bd" : "#e8e6e1")
+      .attr("stroke", d.imm ? "#1a5a94" : "#bbb")
+      .attr("stroke-width", 0.5)
+      .style("cursor", "pointer")
+      .on("mouseenter", function(evt) {
+        showTooltip(evt,
+          `<div class="tt-city">${d.label}</div>
+           <div class="tt-value">${d.value.toLocaleString()} jobs lost (${d.pct}% of total decline)</div>`);
+      })
+      .on("mousemove", moveTooltip)
+      .on("mouseleave", hideTooltip);
+
+    // Label inside bar
+    if (barWidth > 60) {
+      g.append("text")
+        .attr("x", cumX + barWidth / 2)
+        .attr("y", barH / 2 - 7)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "18px")
+        .attr("font-weight", "700")
+        .attr("fill", d.imm ? "#fff" : "#313132")
+        .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+        .text(Math.round(d.pct) + "%");
+
+      g.append("text")
+        .attr("x", cumX + barWidth / 2)
+        .attr("y", barH / 2 + 11)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "11px")
+        .attr("fill", d.imm ? "rgba(255,255,255,0.8)" : "#717375")
+        .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+        .text("\u2212" + d.value.toLocaleString() + " jobs");
+    }
+
+    cumX += barWidth;
+  });
+
+  // Labels below
+  const legendY = barH + 18;
+  g.append("rect").attr("x", 0).attr("y", legendY).attr("width", 12).attr("height", 12)
+    .attr("fill", "#3182bd").attr("rx", 1);
+  g.append("text").attr("x", 16).attr("y", legendY + 6).attr("dy", "0.35em")
+    .attr("font-size", "11px").attr("fill", "#313132")
+    .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+    .text("Immigrant-serving downtowns");
+
+  g.append("rect").attr("x", 220).attr("y", legendY).attr("width", 12).attr("height", 12)
+    .attr("fill", "#e8e6e1").attr("stroke", "#bbb").attr("stroke-width", 0.5).attr("rx", 1);
+  g.append("text").attr("x", 236).attr("y", legendY + 6).attr("dy", "0.35em")
+    .attr("font-size", "11px").attr("fill", "#313132")
+    .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+    .text("Non-immigrant-serving downtowns");
+
+  // Total label
+  g.append("text").attr("x", cw).attr("y", legendY + 6).attr("dy", "0.35em")
+    .attr("text-anchor", "end")
+    .attr("font-size", "11px").attr("fill", "#86888b")
+    .attr("font-family", "'Knowledge', -apple-system, Helvetica, sans-serif")
+    .text("Total: \u2212" + totalLoss.toLocaleString() + " jobs");
+}
+
+// ── PostMessage height reporting ──
+function reportHeight() { if (window.parent !== window) window.parent.postMessage({"embed-height": document.documentElement.scrollHeight}, "*"); }
+window.addEventListener("load", reportHeight);
+window.addEventListener("resize", reportHeight);
+</script>
+</body>
+</html>
